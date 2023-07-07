@@ -34,6 +34,9 @@ models:
   dbt_tpcdi:
     example:
       +materialized: view
-    staging:
-      +schema: staging
-      +materialized: view
+    bronze:
+      +schema: bronze
+      +materialized: table
+    silver:
+      +schema: silver
+      +materialized: table
