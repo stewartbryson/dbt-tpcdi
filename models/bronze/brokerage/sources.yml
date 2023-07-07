@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: brokerage
+    database: tpc_di
+    schema: digen
+    loader: snowpark
+
+    tables:
+      - name: daily_market
+      
