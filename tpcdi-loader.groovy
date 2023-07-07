@@ -27,7 +27,7 @@ def dir = new File(cliOptions.directory)
 def uploadFiles(String pattern, String directory, String stage, String batch, Session session, Map options) {
         // load all FINWIRE files
         new File(directory).eachFileRecurse (FileType.FILES) { file ->
-                if (file.parentFile.name.contains("Batch${batch}") && (!file.name.contains("audit")) && (file.name.contains(pattern))) {
+                if (file.parentFile.name.contains("Batch${batch}") && (!file.name.contains("audit")) && (file.name.contains(pattern)) && (file.name != 'BatchDate.txt')) {
                         PutResult[] pr = session.file().put(file.path, "@${stage}/Batch${batch}/${file.name}", options)
                         pr.each {
                                 println "File ${it.sourceFileName}: ${it.status}"
@@ -195,6 +195,76 @@ if (['all','industry'].contains(cliOptions.filetype.toLowerCase()) && !cliOption
                 //.show()
 
         println "INDUSTRY table created."
+
+}
+
+if (['all','dailymarket'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        def fileName = "DailyMarket.txt"
+        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType dailyMarket = StructType.create(
+                new StructField("DM_DATE", DataTypes.DateType, false),
+                new StructField("DM_S_SYMB", DataTypes.StringType, false),
+                new StructField("DM_CLOSE", DataTypes.FloatType, false),
+                new StructField("DM_HIGH", DataTypes.FloatType, false),
+                new StructField("DM_LOW", DataTypes.FloatType, false),
+                new StructField("DM_VOL", DataTypes.FloatType, false)
+        )
+
+        def dfrdm = session
+                .read()
+                .schema(dailyMarket)
+                .option("field_delimiter", "|")
+
+        def dfdm = dfrdm.csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("daily_market")
+                //.show()
+
+        println "DAILY_MARKET table created."
+
+}
+
+if (['all','date'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        def fileName = "Date.txt"
+        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType date = StructType.create(
+                new StructField("SK_DATE_ID", DataTypes.IntegerType, false),
+                new StructField("DATE_VALUE", DataTypes.DateType, false),
+                new StructField("DATE_DESC", DataTypes.StringType, false),
+                new StructField("CALENDAR_YEAR_ID", DataTypes.IntegerType, false),
+                new StructField("CALENDAR_YEAR_DESC", DataTypes.StringType, false),
+                new StructField("CALENDAR_QTR_ID", DataTypes.IntegerType, false),
+                new StructField("CALENDAR_QTR_DESC", DataTypes.StringType, false),
+                new StructField("CALENDAR_MONTH_ID", DataTypes.IntegerType, false),
+                new StructField("CALENDAR_MONTH_DESC", DataTypes.StringType, false),
+                new StructField("CALENDAR_WEEK_ID", DataTypes.IntegerType, false),
+                new StructField("CALENDAR_WEEK_DESC", DataTypes.StringType, false),
+                new StructField("DAY_OF_WEEK_NUM", DataTypes.IntegerType, false),
+                new StructField("DAY_OF_WEEK_DESC", DataTypes.StringType, false),
+                new StructField("FISCAL_YEAR_ID", DataTypes.IntegerType, false),
+                new StructField("FISCAL_YEAR_DESC", DataTypes.StringType, false),
+                new StructField("FISCAL_QTR_ID", DataTypes.IntegerType, false),
+                new StructField("FISCAL_QTR_DESC", DataTypes.StringType, false),
+                new StructField("HOLIDAY_FLAG", DataTypes.BooleanType, false)
+        )
+
+        def dfrd = session
+                .read()
+                .schema(date)
+                .option("field_delimiter", "|")
+
+        def dfd = dfrd.csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("date")
+                //.show()
+
+        println "DATE table created."
 
 }
 
