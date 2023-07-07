@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: finwire
+    database: tpc_di
+    schema: trt
+    loader: fivetran
+
+    tables:
+      - name: cmp
+      - name: sec
+      - name: fin
