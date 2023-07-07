@@ -1,7 +1,7 @@
 version: 2
 
 sources:
-  - name: digen
+  - name: finwire
     database: tpc_di
     schema: digen
     loader: snowpark
@@ -10,5 +10,3 @@ sources:
       - name: cmp
       - name: sec
       - name: fin
-      - name: status_type
-      - name: industry

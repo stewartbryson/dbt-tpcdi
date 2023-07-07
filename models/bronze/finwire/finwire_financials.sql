@@ -1,8 +1,9 @@
+
 with s1 as (
     select 
         *,
         try_to_number(co_name_or_cik) as try_cik
-    from {{ source("digen", "fin") }}
+    from {{ source("finwire", "fin") }}
 )
 select 
     to_timestamp(pts, 'yyyymmdd-hhmiss') as pts,

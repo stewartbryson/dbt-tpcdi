@@ -1,3 +1,4 @@
+
 select
     to_timestamp(pts, 'yyyymmdd-hhmiss') as pts,
     company_name,
@@ -14,4 +15,4 @@ select
     country,
     ceo_name,
     description
-from {{ source("digen", "cmp") }}
+from {{ source("finwire", "cmp") }}
