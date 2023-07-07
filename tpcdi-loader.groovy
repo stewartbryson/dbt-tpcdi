@@ -153,6 +153,49 @@ if (['all','statustype'].contains(cliOptions.filetype.toLowerCase()) && !cliOpti
 
         uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
 
+        // a schema for realing a fixed width field as a single line
+        StructType statusType = StructType.create(
+                new StructField("ST_ID", DataTypes.StringType, false),
+                new StructField("ST_NAME", DataTypes.StringType, false)
+        )
+
+        def dfrst = session
+                .read()
+                .schema(statusType)
+                .option("field_delimiter", "|")
+
+        def dfst = dfrst.csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("status_type")
+                //.show()
+
+        println "STATUS_TYPE table created."
+
+}
+
+if (['all','industry'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        def fileName = "Industry.txt"
+        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType industry = StructType.create(
+                new StructField("IN_ID", DataTypes.StringType, false),
+                new StructField("IN_NAME", DataTypes.StringType, false),
+                new StructField("IN_SC_ID", DataTypes.StringType, false)
+        )
+
+        def dfri = session
+                .read()
+                .schema(industry)
+                .option("field_delimiter", "|")
+
+        def dfi = dfri.csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("industry")
+                //.show()
+
+        println "INDUSTRY table created."
+
 }
 
 session.close()

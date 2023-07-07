@@ -1,12 +1,14 @@
 version: 2
 
 sources:
-  - name: finwire
+  - name: digen
     database: tpc_di
-    schema: trt
-    loader: fivetran
+    schema: digen
+    loader: snowpark
 
     tables:
       - name: cmp
       - name: sec
       - name: fin
+      - name: status_type
+      - name: industry
