@@ -1,5 +1,5 @@
 select
-    company_key,
+    sk_company_id,
     f.company_id,
     QUARTER_START_DATE,
     sum(eps) over (
@@ -10,4 +10,4 @@ select
 from {{ ref("financials") }} f
 join {{ ref("dim_company") }} c 
 on f.company_id = c.company_id
-and f.start_time between c.start_time and c.end_time
+and f.effective_timestamp between c.effective_timestamp and c.end_timestamp
