@@ -13,8 +13,8 @@ select
     country,
     description,
     founding_date,
-    pts as start_time,
     sp_rating,
+    pts as effective_timestamp,
     ifnull(
         timestampadd(
         'millisecond',
@@ -26,7 +26,7 @@ select
         )
         ),
         to_timestamp('9999-12-31 23:59:59.999')
-    ) as end_time,
+    ) as end_timestamp,
     CASE
         WHEN (
             row_number() over (

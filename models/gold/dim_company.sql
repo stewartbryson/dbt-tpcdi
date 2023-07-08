@@ -1,5 +1,5 @@
 select
-    {{dbt_utils.generate_surrogate_key(['company_id','start_time'])}} company_key,
+    {{dbt_utils.generate_surrogate_key(['company_id','effective_timestamp'])}} sk_company_id,
     company_id,
     status,
     name,
@@ -33,7 +33,7 @@ select
         then true
         else false
     end as is_lowgrade,
-    start_time,
-    end_time,
+    effective_timestamp,
+    end_timestamp,
     is_current
 from {{ ref("companies") }}
