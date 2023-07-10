@@ -9,3 +9,4 @@ sources:
     tables:
       - name: status_type
       - name: industry
+      - name: date
