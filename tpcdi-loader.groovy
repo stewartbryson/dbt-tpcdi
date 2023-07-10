@@ -268,4 +268,48 @@ if (['all','date'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.re
 
 }
 
+if (['all','prospect'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        def fileName = "Prospect.csv"
+        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType prospect = StructType.create(
+                new StructField("AGENCY_ID", DataTypes.StringType, false),
+                new StructField("LAST_NAME", DataTypes.StringType, true),
+                new StructField("FIRST_NAME", DataTypes.StringType, true),
+                new StructField("MIDDLE_INITIAL", DataTypes.StringType, true),
+                new StructField("GENDER", DataTypes.StringType, true),
+                new StructField("ADDRESS_LINE1", DataTypes.StringType, true),
+                new StructField("ADDRESS_LINE2", DataTypes.StringType, true),
+                new StructField("POSTAL_CODE", DataTypes.StringType, true),
+                new StructField("CITY", DataTypes.StringType, true),
+                new StructField("STATE", DataTypes.StringType, true),
+                new StructField("COUNTRY", DataTypes.StringType, true),
+                new StructField("PHONE", DataTypes.StringType, true),
+                new StructField("INCOME", DataTypes.IntegerType, true),
+                new StructField("NUMBER_CARS", DataTypes.IntegerType, true),
+                new StructField("NUMBER_CHILDREN", DataTypes.IntegerType, true),
+                new StructField("MARITAL_STATUS", DataTypes.StringType, true),
+                new StructField("AGE", DataTypes.IntegerType, true),
+                new StructField("CREDIT_RATING", DataTypes.IntegerType, true),
+                new StructField("OWN_OR_RENT_FLAG", DataTypes.StringType, true),
+                new StructField("EMPLOYER", DataTypes.StringType, true),
+                new StructField("NUMBER_CREDIT_CARDS", DataTypes.IntegerType, true),
+                new StructField("NET_WORTH", DataTypes.IntegerType, true),
+        )
+
+        def dfrProspect = session
+                .read()
+                .schema(prospect)
+
+        def dfProspect = dfrProspect.csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("prospect")
+                //.show()
+
+        println "PROSPECT table created."
+
+}
+
 session.close()
