@@ -6,7 +6,7 @@ with s1 as (
     from {{ source("finwire", "fin") }}
 )
 select 
-    to_timestamp(pts, 'yyyymmdd-hhmiss') as pts,
+    pts,
     to_number(year) as year,
     to_number(quarter) as quarter,
     to_date(quarter_start_date,'yyyymmdd') as quarter_start_date,

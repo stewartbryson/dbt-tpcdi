@@ -60,6 +60,9 @@ StructType fixed = StructType.create(
   new StructField("line", DataTypes.StringType, false)
 )
 
+def stagePath
+def fileName
+
 // reusable DataFrameReader
 def dfr = session
         .read()
@@ -71,7 +74,7 @@ if (['all','finwire'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions
         // load all FINWIRE files
         uploadFiles('FINWIRE', cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
 
-        def stagePath = "@${cliOptions.stage}/Batch${batch}/FINWIRE"
+        stagePath = "@${cliOptions.stage}/Batch${batch}/FINWIRE"
 
         // create the CMP table
         def dfc = dfr.csv(stagePath)
@@ -92,6 +95,8 @@ if (['all','finwire'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions
                 .withColumn('country', Functions.substring(Functions.col("line"), Functions.lit(324), Functions.lit(24)))
                 .withColumn('ceo_name', Functions.substring(Functions.col("line"), Functions.lit(348), Functions.lit(46)))
                 .withColumn('description', Functions.substring(Functions.col("line"), Functions.lit(394), Functions.lit(150)))
+                .withColumn("pts", Functions.callUDF("to_timestamp", Functions.col("pts"), Functions.lit("yyyymmdd-hhmiss")))
+                
                 .drop(Functions.col("line"))
                 .write().mode(SaveMode.Overwrite).saveAsTable("cmp")
                 //.show()
@@ -113,6 +118,7 @@ if (['all','finwire'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions
                 .withColumn('first_exchange_date', Functions.substring(Functions.col("line"), Functions.lit(141), Functions.lit(8)))
                 .withColumn('dividend', Functions.substring(Functions.col("line"), Functions.lit(149), Functions.lit(12)))
                 .withColumn('co_name_or_cik', Functions.substring(Functions.col("line"), Functions.lit(161), Functions.lit(60)))
+                .withColumn("pts", Functions.callUDF("to_timestamp", Functions.col("pts"), Functions.lit("yyyymmdd-hhmiss")))
                 .drop(Functions.col("line"))
                 .write().mode(SaveMode.Overwrite).saveAsTable("sec")
                 //.show()
@@ -139,6 +145,7 @@ if (['all','finwire'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions
                 .withColumn('sh_out', Functions.substring(Functions.col("line"), Functions.lit(161), Functions.lit(13)))
                 .withColumn('diluted_sh_out', Functions.substring(Functions.col("line"), Functions.lit(174), Functions.lit(13)))
                 .withColumn('co_name_or_cik', Functions.substring(Functions.col("line"), Functions.lit(187), Functions.lit(60)))
+                .withColumn("pts", Functions.callUDF("to_timestamp", Functions.col("pts"), Functions.lit("yyyymmdd-hhmiss")))
                 .drop(Functions.col("line"))
                 .write().mode(SaveMode.Overwrite).saveAsTable("fin")
                 //.show()
@@ -148,8 +155,8 @@ if (['all','finwire'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions
 }
 
 if (['all','statustype'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
-        def fileName = "StatusType.txt"
-        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+        fileName = "StatusType.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
 
         uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
 
@@ -173,8 +180,8 @@ if (['all','statustype'].contains(cliOptions.filetype.toLowerCase()) && !cliOpti
 }
 
 if (['all','industry'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
-        def fileName = "Industry.txt"
-        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+        fileName = "Industry.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
 
         uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
 
@@ -199,8 +206,8 @@ if (['all','industry'].contains(cliOptions.filetype.toLowerCase()) && !cliOption
 }
 
 if (['all','dailymarket'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
-        def fileName = "DailyMarket.txt"
-        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+        fileName = "DailyMarket.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
 
         uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
 
@@ -228,8 +235,8 @@ if (['all','dailymarket'].contains(cliOptions.filetype.toLowerCase()) && !cliOpt
 }
 
 if (['all','date'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
-        def fileName = "Date.txt"
-        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+        fileName = "Date.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
 
         uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
 
@@ -269,8 +276,8 @@ if (['all','date'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.re
 }
 
 if (['all','prospect'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
-        def fileName = "Prospect.csv"
-        def stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+        fileName = "Prospect.csv"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
 
         uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
 
@@ -309,6 +316,85 @@ if (['all','prospect'].contains(cliOptions.filetype.toLowerCase()) && !cliOption
                 //.show()
 
         println "PROSPECT table created."
+
+}
+
+if (['all','customer'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        fileName = "CustomerMgmt.csv"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType customer = StructType.create(
+                new StructField("ACTION_TYPE", DataTypes.StringType, false),
+                new StructField("ACTION_TS", DataTypes.StringType, true),
+                new StructField("C_ID", DataTypes.IntegerType, true),
+                new StructField("C_TAX_ID", DataTypes.StringType, true),
+                new StructField("C_GNDR", DataTypes.StringType, true),
+                new StructField("C_TIER", DataTypes.IntegerType, true),
+                new StructField("C_DOB", DataTypes.DateType, true),
+                new StructField("C_L_NAME", DataTypes.StringType, true),
+                new StructField("C_F_NAME", DataTypes.StringType, true),
+                new StructField("C_M_NAME", DataTypes.StringType, true),
+                new StructField("C_ADLINE1", DataTypes.StringType, true),
+                new StructField("C_ADLINE2", DataTypes.StringType, true),
+                new StructField("C_ZIPCODE", DataTypes.StringType, true),
+                new StructField("C_CITY", DataTypes.StringType, true),
+                new StructField("C_STATE_PROV", DataTypes.StringType, true),
+                new StructField("C_CTRY", DataTypes.StringType, true),
+                new StructField("C_PRIM_EMAIL", DataTypes.StringType, true),
+                new StructField("C_ALT_EMAIL", DataTypes.StringType, true),
+                new StructField("C_PHONE_1", DataTypes.StringType, true),
+                new StructField("C_PHONE_2", DataTypes.StringType, true),
+                new StructField("C_PHONE_3", DataTypes.StringType, true),
+                new StructField("C_LCL_TX_ID", DataTypes.StringType, true),
+                new StructField("C_NAT_TX_ID", DataTypes.StringType, true),
+                new StructField("CA_ID", DataTypes.IntegerType, true),
+                new StructField("CA_TAX_ST", DataTypes.StringType, true),
+                new StructField("CA_B_ID", DataTypes.IntegerType, true),
+                new StructField("CA_C_ID", DataTypes.IntegerType, true),
+                new StructField("CA_NAME", DataTypes.StringType, true)
+        )
+
+        def dfrCustomer = session
+                .read()
+                .schema(customer)
+                .option("field_delimiter", "|")
+                .option("SKIP_HEADER",1)
+
+        def dfCustomer = dfrCustomer.csv(stagePath)
+                .withColumn("action_ts", Functions.callUDF("to_timestamp", Functions.col("action_ts"), Functions.lit("yyyy-mm-ddThh:mi:ss")))
+                .write().mode(SaveMode.Overwrite).saveAsTable("customer_mgmt")
+                //.show()
+
+        println "CUSTOMER_MGMT table created."
+
+}
+
+if (['all','taxrate'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        fileName = "TaxRate.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType tax = StructType.create(
+                new StructField("TX_ID", DataTypes.StringType, false),
+                new StructField("TX_NAME", DataTypes.StringType, true),
+                new StructField("TX_RATE", DataTypes.FloatType, true)
+        )
+
+        def dfrTax = session
+                .read()
+                .schema(tax)
+                .option("field_delimiter", "|")
+
+        def dfTax = dfrTax.csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("tax_rate")
+                //.show()
+
+        println "TAX_RATE table created."
 
 }
 

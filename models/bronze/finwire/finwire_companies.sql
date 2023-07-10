@@ -1,6 +1,6 @@
 
 select
-    to_timestamp(pts, 'yyyymmdd-hhmiss') as pts,
+    pts,
     company_name,
     to_number(cik) as cik,
     status,
