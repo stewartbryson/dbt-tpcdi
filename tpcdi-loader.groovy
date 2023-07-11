@@ -166,12 +166,11 @@ if (['all','statustype'].contains(cliOptions.filetype.toLowerCase()) && !cliOpti
                 new StructField("ST_NAME", DataTypes.StringType, false)
         )
 
-        def dfrst = session
+        def dfst = session
                 .read()
                 .schema(statusType)
                 .option("field_delimiter", "|")
-
-        def dfst = dfrst.csv(stagePath)
+                .csv(stagePath)
                 .write().mode(SaveMode.Overwrite).saveAsTable("status_type")
                 //.show()
 
@@ -192,12 +191,11 @@ if (['all','industry'].contains(cliOptions.filetype.toLowerCase()) && !cliOption
                 new StructField("IN_SC_ID", DataTypes.StringType, false)
         )
 
-        def dfri = session
+        def dfi = session
                 .read()
                 .schema(industry)
                 .option("field_delimiter", "|")
-
-        def dfi = dfri.csv(stagePath)
+                .csv(stagePath)
                 .write().mode(SaveMode.Overwrite).saveAsTable("industry")
                 //.show()
 
@@ -221,12 +219,11 @@ if (['all','dailymarket'].contains(cliOptions.filetype.toLowerCase()) && !cliOpt
                 new StructField("DM_VOL", DataTypes.FloatType, false)
         )
 
-        def dfrdm = session
+        def dfdm = session
                 .read()
                 .schema(dailyMarket)
                 .option("field_delimiter", "|")
-
-        def dfdm = dfrdm.csv(stagePath)
+                .csv(stagePath)
                 .write().mode(SaveMode.Overwrite).saveAsTable("daily_market")
                 //.show()
 
@@ -262,12 +259,11 @@ if (['all','date'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.re
                 new StructField("HOLIDAY_FLAG", DataTypes.BooleanType, false)
         )
 
-        def dfrd = session
+        def dfd = session
                 .read()
                 .schema(date)
                 .option("field_delimiter", "|")
-
-        def dfd = dfrd.csv(stagePath)
+                .csv(stagePath)
                 .write().mode(SaveMode.Overwrite).saveAsTable("date")
                 //.show()
 
@@ -307,11 +303,10 @@ if (['all','prospect'].contains(cliOptions.filetype.toLowerCase()) && !cliOption
                 new StructField("NET_WORTH", DataTypes.IntegerType, true),
         )
 
-        def dfrProspect = session
+        def dfProspect = session
                 .read()
                 .schema(prospect)
-
-        def dfProspect = dfrProspect.csv(stagePath)
+                .csv(stagePath)
                 .write().mode(SaveMode.Overwrite).saveAsTable("prospect")
                 //.show()
 
@@ -357,13 +352,12 @@ if (['all','customer'].contains(cliOptions.filetype.toLowerCase()) && !cliOption
                 new StructField("CA_NAME", DataTypes.StringType, true)
         )
 
-        def dfrCustomer = session
+        def dfCustomer = session
                 .read()
                 .schema(customer)
                 .option("field_delimiter", "|")
                 .option("SKIP_HEADER",1)
-
-        def dfCustomer = dfrCustomer.csv(stagePath)
+                .csv(stagePath)
                 .withColumn("action_ts", Functions.callUDF("to_timestamp", Functions.col("action_ts"), Functions.lit("yyyy-mm-ddThh:mi:ss")))
                 .write().mode(SaveMode.Overwrite).saveAsTable("customer_mgmt")
                 //.show()
@@ -385,16 +379,45 @@ if (['all','taxrate'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions
                 new StructField("TX_RATE", DataTypes.FloatType, true)
         )
 
-        def dfrTax = session
+        def dfTax = session
                 .read()
                 .schema(tax)
                 .option("field_delimiter", "|")
-
-        def dfTax = dfrTax.csv(stagePath)
+                .csv(stagePath)
                 .write().mode(SaveMode.Overwrite).saveAsTable("tax_rate")
                 //.show()
 
         println "TAX_RATE table created."
+
+}
+
+if (['all','hr'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        fileName = "HR.csv"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType hr = StructType.create(
+                new StructField("EMPLOYEE_ID", DataTypes.IntegerType, false),
+                new StructField("MANAGER_ID", DataTypes.IntegerType, false),
+                new StructField("EMPLOYEE_FIRST_NAME", DataTypes.StringType, true),
+                new StructField("EMPLOYEE_LAST_NAME", DataTypes.StringType, true),
+                new StructField("EMPLOYEE_MI", DataTypes.StringType, true),
+                new StructField("EMPLOYEE_JOB_CODE", DataTypes.IntegerType, true),
+                new StructField("EMPLOYEE_BRANCH", DataTypes.StringType, true),
+                new StructField("EMPLOYEE_OFFICE", DataTypes.StringType, true),
+                new StructField("EMPLOYEE_PHONE", DataTypes.StringType, true)
+        )
+
+        def dfHr = session
+                .read()
+                .schema(hr)
+                .csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("hr")
+                //.show()
+
+        println "HR table created."
 
 }
 

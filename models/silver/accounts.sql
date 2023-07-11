@@ -6,6 +6,7 @@ select
       'UPDACCT','Active',
       'CLOSEACCT','Inactive') status,
     ca_id account_id,
+    ca_name account_desc,
     c_id customer_id,
     c_tax_id tax_id,
     c_gndr gender,
@@ -29,7 +30,7 @@ select
     ltx.tx_rate local_tax_rate,
     c_nat_tx_id national_tax_rate_name,
     ntx.tx_rate national_tax_rate,
-    ca_tax_st account_tax_state,
+    ca_tax_st tax_status,
     ca_b_id broker_id,
     action_ts as effective_timestamp,
     ifnull(

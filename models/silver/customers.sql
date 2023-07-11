@@ -30,7 +30,7 @@ select
     ltx.tx_rate local_tax_rate,
     c_nat_tx_id national_tax_rate_name,
     ntx.tx_rate national_tax_rate,
-    ca_tax_st account_tax_state,
+    ca_tax_st account_tax_status,
     ca_b_id broker_id,
     action_ts as effective_timestamp,
     ifnull(
