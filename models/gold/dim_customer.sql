@@ -1,4 +1,13 @@
 with s1 as (
+    select c.*,
+           p.agency_id,
+           p.credit_rating,
+           p.net_worth
+    FROM {{ ref('customers') }} c
+    left join {{ ref('syndicated_prospects') }} p
+    using (first_name, last_name, postal_code, address_line1, address_line2)
+),
+s2 as (
     SELECT
         {{dbt_utils.generate_surrogate_key(['customer_id','effective_timestamp'])}} sk_customer_id,
         customer_id,
@@ -69,15 +78,13 @@ with s1 as (
         coalesce(national_tax_rate, last_value(national_tax_rate) IGNORE NULLS OVER (
             PARTITION BY customer_id
             ORDER BY effective_timestamp)) national_tax_rate,
+        agency_id,
+        credit_rating,
+        net_worth,
         effective_timestamp,
         end_timestamp,
         is_current
-    FROM {{ ref('customers') }}
+    FROM s1
 )
-select s1.*,
-       p.agency_id,
-       p.net_worth,
-       p.credit_rating
-from s1
-left join {{ ref('syndicated_prospects') }} p
-using (first_name, last_name, postal_code, address_line1, address_line2)
+select *
+from s2
