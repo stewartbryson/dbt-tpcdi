@@ -7,6 +7,7 @@ import com.snowflake.snowpark_java.types.*
 import com.snowflake.snowpark_java.*
 import groovy.cli.commons.CliBuilder
 import groovy.io.FileType
+import groovy.transform.Field
 
 def fileType = 'all'
 def stage = 'upload'
@@ -20,15 +21,24 @@ cli.r(longOpt: 'reset', "Delete tables and recreate the stage.")
 cli.o(longOpt: 'overwrite', "Overwrite files when uploading to stage.")
 cli.d(longOpt: 'directory', "Local output directory from the DIGen.jar file generation. Defaults to current directory.", args: 1, defaultValue: directory)
 
-def cliOptions = cli.parse(args)
-def dir = new File(cliOptions.directory)
+cliOptions = cli.parse(args)
+
+dir = new File(cliOptions.directory)
+
+session = Session.builder().configFile("credentials.properties").create()
+
+options = [
+        AUTO_COMPRESS: 'TRUE',
+        PARALLEL     : '4',
+        OVERWRITE    : (cliOptions.overwrite ? 'TRUE' : 'FALSE')
+]
 
 // upload files
-def uploadFiles(String pattern, String directory, String stage, String batch, Session session, Map options) {
+def uploadFiles(String pattern) {
         // load all FINWIRE files
-        new File(directory).eachFileRecurse (FileType.FILES) { file ->
-                if (file.parentFile.name.contains("Batch${batch}") && (!file.name.contains("audit")) && (file.name.contains(pattern)) && (file.name != 'BatchDate.txt')) {
-                        PutResult[] pr = session.file().put(file.path, "@${stage}/Batch${batch}/${file.name}", options)
+        new File(cliOptions.directory).eachFileRecurse (FileType.FILES) { file ->
+                if (file.parentFile.name.contains("Batch${cliOptions.batch}") && (!file.name.contains("audit")) && (file.name.contains(pattern)) && (file.name != 'BatchDate.txt')) {
+                        PutResult[] pr = session.file().put(file.path, "@${cliOptions.stage}/Batch${batch}/${file.name}", options)
                         pr.each {
                                 println "File ${it.sourceFileName}: ${it.status}"
                         }
@@ -36,13 +46,27 @@ def uploadFiles(String pattern, String directory, String stage, String batch, Se
         }
 }
 
-def session = Session.builder().configFile("credentials.properties").create()
+def loadCsv(StructType structType, String fileName, String tableName) {
 
-def options = [
-        AUTO_COMPRESS: 'TRUE',
-        PARALLEL     : '4',
-        OVERWRITE    : (cliOptions.overwrite ? 'TRUE' : 'FALSE')
-]
+        def delimiter = ((fileName.split('.')[2] == 'txt') ? '|' : ','  )
+        
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName)
+
+        def dfCsv = session
+                .read()
+                .schema(structType)
+                .option("field_delimiter", delimiter)
+                .csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable(tableName)
+                //.show()
+
+        println "${tableName.toUpperCase()} table created."
+
+        session.close()
+
+}
 
 if (cliOptions.reset) {
         session.jdbcConnection().createStatement().execute("create or replace stage ${cliOptions.stage} directory = (enable = true)")
@@ -445,6 +469,98 @@ if (['all','watchhistory'].contains(cliOptions.filetype.toLowerCase()) && !cliOp
 
         println "WATCH_HISTORY table created."
 
+}
+
+if (['all','watchhistory'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        fileName = "WatchHistory.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType watchHistory = StructType.create(
+                new StructField("W_C_ID", DataTypes.IntegerType, false),
+                new StructField("W_S_SYMB", DataTypes.StringType, true),
+                new StructField("W_DTS", DataTypes.TimestampType, true),
+                new StructField("W_ACTION", DataTypes.StringType, true)
+        )
+
+        def dfWatch = session
+                .read()
+                .schema(watchHistory)
+                .option("field_delimiter", "|")
+                .csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("watch_history")
+                //.show()
+
+        println "WATCH_HISTORY table created."
+
+}
+
+if (['all','trade'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        fileName = "Trade.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType trade = StructType.create(
+                new StructField("T_ID", DataTypes.IntegerType, false),
+                new StructField("T_DTS", DataTypes.TimestampType, false),
+                new StructField("T_ST_ID", DataTypes.StringType, false),
+                new StructField("T_TT_ID", DataTypes.StringType, false),
+                new StructField("T_IS_CASH", DataTypes.BooleanType, false),
+                new StructField("T_S_SYMB", DataTypes.StringType, false),
+                new StructField("T_QTY", DataTypes.FloatType,false),
+                new StructField("T_BID_PRICE", DataTypes.FloatType, false),
+                new StructField("T_CA_ID", DataTypes.IntegerType, false),
+                new StructField("T_EXEC_NAME", DataTypes.StringType, false),
+                new StructField("T_TRADE_PRICE", DataTypes.FloatType, true),
+                new StructField("T_CHRG", DataTypes.FloatType, true),
+                new StructField("T_COMM", DataTypes.FloatType, true),
+                new StructField("T_TAX", DataTypes.FloatType, true)
+        )
+
+        def dfTrade = session
+                .read()
+                .schema(trade)
+                .option("field_delimiter", "|")
+                .csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("trade")
+                //.show()
+
+        println "TRADE table created."
+
+}
+
+if (['all','tradehistory'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        fileName = "TradeHistory.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType tradeHistory = StructType.create(
+                new StructField("TH_T_ID", DataTypes.IntegerType, false),
+                new StructField("TH_DTS", DataTypes.TimestampType, false),
+                new StructField("TH_ST_ID", DataTypes.StringType, false)
+        )
+
+        def dfTradeHistory = session
+                .read()
+                .schema(tradeHistory)
+                .option("field_delimiter", "|")
+                .csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("trade_history")
+                //.show()
+
+        println "TRADE_HISTORY table created."
+
+}
+
+if (['all','statustype'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+
+        loadCsv(structType, "StatusType.txt", 'status_type')
 }
 
 session.close()
