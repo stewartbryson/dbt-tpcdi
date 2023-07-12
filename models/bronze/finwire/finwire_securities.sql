@@ -7,7 +7,7 @@ select
     pts,
     symbol,
     issue_type,
-    to_number(status) as status,
+    status,
     name,
     ex_id,
     to_number(sh_out) as sh_out,

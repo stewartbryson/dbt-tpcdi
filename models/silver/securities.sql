@@ -1,7 +1,11 @@
 select
     symbol,
     issue_type,
-    s.status,
+    case s.status
+        when 'ACTV' then 'Active'
+        when 'INAC' then 'Inactive'
+        else null
+    end status,
     s.name,
     ex_id exchange_id,
     sh_out shares_outstanding,

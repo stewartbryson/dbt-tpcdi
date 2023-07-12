@@ -8,4 +8,5 @@ sources:
 
     tables:
       - name: daily_market
+      - name: watch_history
       

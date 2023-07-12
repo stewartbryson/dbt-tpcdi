@@ -110,7 +110,7 @@ if (['all','finwire'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions
                 .where(Functions.col('rec_type').equal_to(Functions.lit('SEC')))
                 .withColumn('symbol', Functions.substring(Functions.col("line"), Functions.lit(19), Functions.lit(15)))
                 .withColumn('issue_type', Functions.substring(Functions.col("line"), Functions.lit(34), Functions.lit(6)))
-                .withColumn('status', Functions.substring(Functions.col("line"), Functions.lit(154), Functions.lit(4)))
+                .withColumn('status', Functions.substring(Functions.col("line"), Functions.lit(40), Functions.lit(4)))
                 .withColumn('name', Functions.substring(Functions.col("line"), Functions.lit(44), Functions.lit(70)))
                 .withColumn('ex_id', Functions.substring(Functions.col("line"), Functions.lit(114), Functions.lit(6)))
                 .withColumn('sh_out', Functions.substring(Functions.col("line"), Functions.lit(120), Functions.lit(13)))
@@ -418,6 +418,32 @@ if (['all','hr'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.rese
                 //.show()
 
         println "HR table created."
+
+}
+
+if (['all','watchhistory'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        fileName = "WatchHistory.txt"
+        stagePath = "@${cliOptions.stage}/Batch${cliOptions.batch}/${fileName}"
+
+        uploadFiles(fileName, cliOptions.directory, cliOptions.stage, cliOptions.batch, session, options)
+
+        // a schema for realing a fixed width field as a single line
+        StructType watchHistory = StructType.create(
+                new StructField("W_C_ID", DataTypes.IntegerType, false),
+                new StructField("W_S_SYMB", DataTypes.StringType, true),
+                new StructField("W_DTS", DataTypes.TimestampType, true),
+                new StructField("W_ACTION", DataTypes.StringType, true)
+        )
+
+        def dfWatch = session
+                .read()
+                .schema(watchHistory)
+                .option("field_delimiter", "|")
+                .csv(stagePath)
+                .write().mode(SaveMode.Overwrite).saveAsTable("watch_history")
+                //.show()
+
+        println "WATCH_HISTORY table created."
 
 }
 
