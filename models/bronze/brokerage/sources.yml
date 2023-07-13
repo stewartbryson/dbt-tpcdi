@@ -11,4 +11,5 @@ sources:
       - name: watch_history
       - name: trade
       - name: trade_history
+      - name: holding_history
       

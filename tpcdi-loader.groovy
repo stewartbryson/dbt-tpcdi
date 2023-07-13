@@ -420,4 +420,16 @@ if (['all','tradetype'].contains(cliOptions.filetype.toLowerCase()) && !cliOptio
         loadCsv(tradeType, "TradeType.txt", 'trade_type')
 }
 
+if (['all','holdinghistory'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        
+        StructType holdingHistory = StructType.create(
+                new StructField("HH_H_T_ID", DataTypes.IntegerType, false),
+                new StructField("HH_T_ID", DataTypes.IntegerType, false),
+                new StructField("HH_BEFORE_QTY", DataTypes.FloatType, false),
+                new StructField("HH_AFTER_QTY", DataTypes.FloatType, false)
+        )
+
+        loadCsv(holdingHistory, "HoldingHistory.txt", 'holding_history')
+}
+
 session.close()
