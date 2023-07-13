@@ -9,4 +9,6 @@ sources:
     tables:
       - name: daily_market
       - name: watch_history
+      - name: trade
+      - name: trade_history
       

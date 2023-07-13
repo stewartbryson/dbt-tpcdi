@@ -408,4 +408,16 @@ if (['all','statustype'].contains(cliOptions.filetype.toLowerCase()) && !cliOpti
         loadCsv(statusType, "StatusType.txt", 'status_type')
 }
 
+if (['all','tradetype'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+
+        StructType tradeType = StructType.create(
+                new StructField("TT_ID", DataTypes.StringType, false),
+                new StructField("TT_NAME", DataTypes.StringType, false),
+                new StructField("TT_IS_SELL", DataTypes.BooleanType, false),
+                new StructField("TT_IS_MARKET", DataTypes.BooleanType)
+        )
+
+        loadCsv(tradeType, "TradeType.txt", 'trade_type')
+}
+
 session.close()

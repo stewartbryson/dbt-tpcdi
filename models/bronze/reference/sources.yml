@@ -11,3 +11,4 @@ sources:
       - name: industry
       - name: date
       - name: tax_rate
+      - name: trade_type
