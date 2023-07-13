@@ -432,4 +432,16 @@ if (['all','holdinghistory'].contains(cliOptions.filetype.toLowerCase()) && !cli
         loadCsv(holdingHistory, "HoldingHistory.txt", 'holding_history')
 }
 
+if (['all','cashtransaction'].contains(cliOptions.filetype.toLowerCase()) && !cliOptions.reset) {
+        
+        StructType cashTransaction = StructType.create(
+                new StructField("CT_CA_ID", DataTypes.IntegerType, false),
+                new StructField("CT_DTS", DataTypes.TimestampType, false),
+                new StructField("CT_AMT", DataTypes.FloatType, false),
+                new StructField("CT_NAME", DataTypes.StringType, false)
+        )
+
+        loadCsv(cashTransaction, "CashTransaction.txt", 'cash_transaction')
+}
+
 session.close()
