@@ -255,6 +255,44 @@ def process_files(
         ])
         load_csv(schema,'TradeHistory.txt','trade_history')
 
+    # Process the StatusType.txt file
+    if file_name in ['all','StatusType.txt']:
+        schema = StructType([
+                StructField("ST_ID", StringType(), False),
+                StructField("ST_NAME", StringType(), False)
+        ])
+        load_csv(schema,'StatusType.txt','status_type')
+
+    # Process the TradeType.txt file
+    if file_name in ['all','TradeType.txt']:
+        schema = StructType([
+                StructField("TT_ID", StringType(), False),
+                StructField("TT_NAME", StringType(), False),
+                StructField("TT_IS_SELL", BooleanType(), False),
+                StructField("TT_IS_MARKET", BooleanType(), False)
+        ])
+        load_csv(schema,'TradeType.txt','trade_type')
+
+    # Process the HoldingHistory.txt file
+    if file_name in ['all','HoldingHistory.txt']:
+        schema = StructType([
+                StructField("HH_H_T_ID", IntegerType(), False),
+                StructField("HH_T_ID", IntegerType(), False),
+                StructField("HH_BEFORE_QTY", FloatType(), False),
+                StructField("HH_AFTER_QTY", FloatType(), False)
+        ])
+        load_csv(schema,'HoldingHistory.txt','holding_history')
+
+    # Process the CashTransaction.txt file
+    if file_name in ['all','CashTransaction.txt']:
+        schema = StructType([
+                StructField("CT_CA_ID", IntegerType(), False),
+                StructField("CT_DTS", TimestampType(), False),
+                StructField("CT_AMT", FloatType(), False),
+                StructField("CT_NAME", StringType(), False)
+        ])
+        load_csv(schema,'CashTransaction.txt','cash_transaction')
+
 
 if __name__ == "__main__":
     app()
