@@ -1,9 +1,9 @@
 import sys, typer, json, re, logging
-from snowflake.snowpark import Session
-from snowflake.snowpark import DataFrame
+from snowflake.snowpark import Session, DataFrame
 from typing_extensions import Annotated
 from pathlib import Path
 from snowflake.snowpark.types import *
+from snowflake.snowpark.functions import col, call_function, lit
 
 # Read the credentials.json file
 with open("credentials.json") as jsonfile:
@@ -115,7 +115,7 @@ def process_files(
                 StructField("DM_LOW", FloatType(), False),
                 StructField("DM_VOL", FloatType(), False),
         ])
-        load_csv(schema,'DailyMarket.txt','industry')
+        load_csv(schema,'DailyMarket.txt','daily_market')
 
     # Process the Industry.txt file
     if file_name in ['all','Industry.txt']:
@@ -152,7 +152,45 @@ def process_files(
                 StructField("NUMBER_CREDIT_CARDS", IntegerType(), True),
                 StructField("NET_WORTH", IntegerType(), True),
         ])
-        load_csv(schema,'Prospect.csv','industry')
+        load_csv(schema,'Prospect.csv','prospect')
+
+    # Process the CustomerMgmt.csv file
+    if file_name in ['all','CustomerMgmt.csv']:
+        schema = StructType([
+                StructField("ACTION_TYPE", StringType(), False),
+                StructField("ACTION_TS", StringType(), True),
+                StructField("C_ID", IntegerType(), True),
+                StructField("C_TAX_ID", StringType(), True),
+                StructField("C_GNDR", StringType(), True),
+                StructField("C_TIER", IntegerType(), True),
+                StructField("C_DOB", DateType(), True),
+                StructField("C_L_NAME", StringType(), True),
+                StructField("C_F_NAME", StringType(), True),
+                StructField("C_M_NAME", StringType(), True),
+                StructField("C_ADLINE1", StringType(), True),
+                StructField("C_ADLINE2", StringType(), True),
+                StructField("C_ZIPCODE", StringType(), True),
+                StructField("C_CITY", StringType(), True),
+                StructField("C_STATE_PROV", StringType(), True),
+                StructField("C_CTRY", StringType(), True),
+                StructField("C_PRIM_EMAIL", StringType(), True),
+                StructField("C_ALT_EMAIL", StringType(), True),
+                StructField("C_PHONE_1", StringType(), True),
+                StructField("C_PHONE_2", StringType(), True),
+                StructField("C_PHONE_3", StringType(), True),
+                StructField("C_LCL_TX_ID", StringType(), True),
+                StructField("C_NAT_TX_ID", StringType(), True),
+                StructField("CA_ID", IntegerType(), True),
+                StructField("CA_TAX_ST", StringType(), True),
+                StructField("CA_B_ID", IntegerType(), True),
+                StructField("CA_C_ID", IntegerType(), True),
+                StructField("CA_NAME", StringType(), True)
+        ])
+        # customer DataFrame logic
+        file_name = 'CustomerMgmt.csv'
+        stage_path = f"@{stage}/Batch{batch}/{file_name}"
+        df = session.read.schema(schema).option("field_delimiter", '|').option("skip_header",1).csv(stage_path).with_column('action_ts', call_function('to_timestamp', col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')))
+        save_df(df, 'customer_mgmt')
 
 if __name__ == "__main__":
     app()
