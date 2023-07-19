@@ -101,10 +101,58 @@ def process_files(
                 StructField("FISCAL_YEAR_DESC", StringType(), False),
                 StructField("FISCAL_QTR_ID", IntegerType(), False),
                 StructField("FISCAL_QTR_DESC", StringType(), False),
-                StructField("HOLIDAY_FLAG", BooleanType(), False)
+                StructField("HOLIDAY_FLAG", BooleanType(), False),
         ])
-
         load_csv(schema,'Date.txt','date')
+
+    # Process the DailyMarket.txt file
+    if file_name in ['all','DailyMarket.txt']:
+        schema = StructType([
+                StructField("DM_DATE", DateType(), False),
+                StructField("DM_S_SYMB", StringType(), False),
+                StructField("DM_CLOSE", FloatType(), False),
+                StructField("DM_HIGH", FloatType(), False),
+                StructField("DM_LOW", FloatType(), False),
+                StructField("DM_VOL", FloatType(), False),
+        ])
+        load_csv(schema,'DailyMarket.txt','industry')
+
+    # Process the Industry.txt file
+    if file_name in ['all','Industry.txt']:
+        schema = StructType([
+                StructField("IN_ID", StringType(), False),
+                StructField("IN_NAME", StringType(), False),
+                StructField("IN_SC_ID", StringType(), False),
+        ])
+        load_csv(schema,'Industry.txt','industry')
+
+    # Process the Prospect.csv file
+    if file_name in ['all','Prospect.csv']:
+        schema = StructType([
+                StructField("AGENCY_ID", StringType(), False),
+                StructField("LAST_NAME", StringType(), True),
+                StructField("FIRST_NAME", StringType(), True),
+                StructField("MIDDLE_INITIAL", StringType(), True),
+                StructField("GENDER", StringType(), True),
+                StructField("ADDRESS_LINE1", StringType(), True),
+                StructField("ADDRESS_LINE2", StringType(), True),
+                StructField("POSTAL_CODE", StringType(), True),
+                StructField("CITY", StringType(), True),
+                StructField("STATE", StringType(), True),
+                StructField("COUNTRY", StringType(), True),
+                StructField("PHONE", StringType(), True),
+                StructField("INCOME", IntegerType(), True),
+                StructField("NUMBER_CARS", IntegerType(), True),
+                StructField("NUMBER_CHILDREN", IntegerType(), True),
+                StructField("MARITAL_STATUS", StringType(), True),
+                StructField("AGE", IntegerType(), True),
+                StructField("CREDIT_RATING", IntegerType(), True),
+                StructField("OWN_OR_RENT_FLAG", StringType(), True),
+                StructField("EMPLOYER", StringType(), True),
+                StructField("NUMBER_CREDIT_CARDS", IntegerType(), True),
+                StructField("NET_WORTH", IntegerType(), True),
+        ])
+        load_csv(schema,'Prospect.csv','industry')
 
 if __name__ == "__main__":
     app()
