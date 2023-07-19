@@ -171,7 +171,7 @@ def process_files(
         ])
         load_csv(schema, con_file_name, 'prospect')
 
-    con_file_name = 'CustomerMgmt.csv'
+    con_file_name = 'CustomerMgmt.xml'
     if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("ACTION_TYPE", StringType(), False),
@@ -204,12 +204,22 @@ def process_files(
                 StructField("CA_NAME", StringType(), True)
         ])
 
-        # customer DataFrame logic
-        df = session.read.schema(schema).option("field_delimiter", '|') \
-            .option("skip_header",1).csv(get_stage_path(stage, con_file_name)) \
-            .with_column('action_ts', to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')))
+        # custom DataFrame logic for dealing with XML
+        # df = session.read.schema(schema).option("field_delimiter", '|') \
+        #     .option("skip_header",1) \
+        #     .csv(get_stage_path(stage, con_file_name)) \
+        #     .with_column('action_ts', to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')))
+        df = session.read \
+            .option('STRIP_OUTER_ELEMENT', True) \
+            .xml(get_stage_path(stage, con_file_name)) \
+            .with_column('action_type', get(col('$1'), lit('@ActionType')).cast('STRING')) \
+            .with_column('action_ts', get(col('$1'), lit('@ActionTS')).cast('TIMESTAMP')) \
+            .with_column('customer', xmlget(col('$1'), lit('Customer'), 0)) \
+            .with_column('name', xmlget(col('customer'), lit('Name'), 0)) \
+            .with_column('c_dob', get(col('customer'), lit('@C_DOB')).cast('DATE')) \
+            
         
-        save_df(df, 'customer_mgmt')
+        save_df(df, 'customer_mgmt_test')
 
     con_file_name = 'TaxRate.txt'
     if file_name in ['all', con_file_name]:
