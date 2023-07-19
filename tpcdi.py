@@ -38,9 +38,11 @@ def process_files(
     skip_upload: Annotated[bool, typer.Option(help="Skip uploading the files?")] = False,
     show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table?")] = False,
 ):
-    # define the stage_path
-    stage_path = f"@{stage}/Batch{batch}/{file_name}"
-    logging.info(f"Stage path: {stage_path}")
+    def get_stage_path(
+            stage:str,
+            file_name:str,
+    ):
+        return f"@{stage}/Batch{batch}/{file_name}"
 
     # method to control printing the dataframe or saving it
     def save_df(
@@ -56,6 +58,7 @@ def process_files(
     # method for uploading files
     def upload_files(
             file_name: str,
+            stage_path: str,
     ):
         delimiter="|"
             
@@ -89,13 +92,14 @@ def process_files(
             file_name: str,
             table_name: str,
     ):
-        delimiter=upload_files(file_name)
+        stage_path = get_stage_path(stage, file_name)
+        delimiter=upload_files(file_name, stage_path)
         
         df = session.read.schema(schema).option("field_delimiter", delimiter).csv(stage_path)
         save_df(df, table_name)
     
-    # process the Date.txt file
-    if file_name in ['all','Date.txt']:
+    con_file_name = 'Date.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("SK_DATE_ID", IntegerType(), False),
                 StructField("DATE_VALUE", DateType(), False),
@@ -116,10 +120,10 @@ def process_files(
                 StructField("FISCAL_QTR_DESC", StringType(), False),
                 StructField("HOLIDAY_FLAG", BooleanType(), False),
         ])
-        load_csv(schema,'Date.txt','date')
+        load_csv(schema, con_file_name, 'date')
 
-    # Process the DailyMarket.txt file
-    if file_name in ['all','DailyMarket.txt']:
+    con_file_name = 'DailyMarket.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("DM_DATE", DateType(), False),
                 StructField("DM_S_SYMB", StringType(), False),
@@ -128,19 +132,19 @@ def process_files(
                 StructField("DM_LOW", FloatType(), False),
                 StructField("DM_VOL", FloatType(), False),
         ])
-        load_csv(schema,'DailyMarket.txt','daily_market')
+        load_csv(schema, con_file_name, 'daily_market')
 
-    # Process the Industry.txt file
-    if file_name in ['all','Industry.txt']:
+    con_file_name = 'Industry.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("IN_ID", StringType(), False),
                 StructField("IN_NAME", StringType(), False),
                 StructField("IN_SC_ID", StringType(), False),
         ])
-        load_csv(schema,'Industry.txt','industry')
+        load_csv(schema, con_file_name, 'industry')
 
-    # Process the Prospect.csv file
-    if file_name in ['all','Prospect.csv']:
+    con_file_name = 'Prospect.csv'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("AGENCY_ID", StringType(), False),
                 StructField("LAST_NAME", StringType(), True),
@@ -165,10 +169,10 @@ def process_files(
                 StructField("NUMBER_CREDIT_CARDS", IntegerType(), True),
                 StructField("NET_WORTH", IntegerType(), True),
         ])
-        load_csv(schema,'Prospect.csv','prospect')
+        load_csv(schema, con_file_name, 'prospect')
 
-    # Process the CustomerMgmt.csv file
-    if file_name in ['all','CustomerMgmt.csv']:
+    con_file_name = 'CustomerMgmt.csv'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("ACTION_TYPE", StringType(), False),
                 StructField("ACTION_TS", StringType(), True),
@@ -199,25 +203,25 @@ def process_files(
                 StructField("CA_C_ID", IntegerType(), True),
                 StructField("CA_NAME", StringType(), True)
         ])
+
         # customer DataFrame logic
-        file_name = 'CustomerMgmt.csv'
         df = session.read.schema(schema).option("field_delimiter", '|') \
-            .option("skip_header",1).csv(stage_path) \
+            .option("skip_header",1).csv(get_stage_path(stage, con_file_name)) \
             .with_column('action_ts', to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')))
         
         save_df(df, 'customer_mgmt')
 
-    # Process the TaxRate.txt file
-    if file_name in ['all','TaxRate.txt']:
+    con_file_name = 'TaxRate.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("TX_ID", StringType(), False),
                 StructField("TX_NAME", StringType(), True),
                 StructField("TX_RATE", FloatType(), True),
         ])
-        load_csv(schema,'TaxRate.txt','tax_rate')
+        load_csv(schema, con_file_name, 'tax_rate')
 
-    # Process the HR.csv file
-    if file_name in ['all','HR.csv']:
+    con_file_name = 'HR.csv'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("EMPLOYEE_ID", IntegerType(), False),
                 StructField("MANAGER_ID", IntegerType(), False),
@@ -229,20 +233,20 @@ def process_files(
                 StructField("EMPLOYEE_OFFICE", StringType(), True),
                 StructField("EMPLOYEE_PHONE", StringType(), True)
         ])
-        load_csv(schema,'HR.csv','hr')
+        load_csv(schema, con_file_name, 'hr')
 
-    # Process the WatchHistory.txt file
-    if file_name in ['all','WatchHistory.txt']:
+    con_file_name = 'WatchHistory.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("W_C_ID", IntegerType(), False),
                 StructField("W_S_SYMB", StringType(), True),
                 StructField("W_DTS", TimestampType(), True),
                 StructField("W_ACTION", StringType(), True)
         ])
-        load_csv(schema,'WatchHistory.txt','watch_history')
+        load_csv(schema, con_file_name, 'watch_history')
 
-    # Process the Trade.txt file
-    if file_name in ['all','Trade.txt']:
+    con_file_name = 'Trade.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("T_ID", IntegerType(), False),
                 StructField("T_DTS", TimestampType(), False),
@@ -259,63 +263,64 @@ def process_files(
                 StructField("T_COMM", FloatType(), True),
                 StructField("T_TAX", FloatType(), True),
         ])
-        load_csv(schema,'Trade.txt','trade')
+        load_csv(schema, con_file_name, 'trade')
 
-    # Process the TradeHistory.txt file
-    if file_name in ['all','TradeHistory.txt']:
+    con_file_name = 'TradeHistory.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("TH_T_ID", IntegerType(), False),
                 StructField("TH_DTS", TimestampType(), False),
                 StructField("TH_ST_ID", StringType(), False),
         ])
-        load_csv(schema,'TradeHistory.txt','trade_history')
+        load_csv(schema, con_file_name, 'trade_history')
 
-    # Process the StatusType.txt file
-    if file_name in ['all','StatusType.txt']:
+    con_file_name = 'StatusType.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("ST_ID", StringType(), False),
                 StructField("ST_NAME", StringType(), False),
         ])
-        load_csv(schema,'StatusType.txt','status_type')
+        load_csv(schema, con_file_name, 'status_type')
 
-    # Process the TradeType.txt file
-    if file_name in ['all','TradeType.txt']:
+    con_file_name = 'TradeType.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("TT_ID", StringType(), False),
                 StructField("TT_NAME", StringType(), False),
                 StructField("TT_IS_SELL", BooleanType(), False),
                 StructField("TT_IS_MARKET", BooleanType(), False),
         ])
-        load_csv(schema,'TradeType.txt','trade_type')
+        load_csv(schema, con_file_name, 'trade_type')
 
-    # Process the HoldingHistory.txt file
-    if file_name in ['all','HoldingHistory.txt']:
+    con_file_name = 'HoldingHistory.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("HH_H_T_ID", IntegerType(), False),
                 StructField("HH_T_ID", IntegerType(), False),
                 StructField("HH_BEFORE_QTY", FloatType(), False),
                 StructField("HH_AFTER_QTY", FloatType(), False),
         ])
-        load_csv(schema,'HoldingHistory.txt','holding_history')
+        load_csv(schema, con_file_name, 'holding_history')
 
-    # Process the CashTransaction.txt file
-    if file_name in ['all','CashTransaction.txt']:
+    con_file_name = 'CashTransaction.txt'
+    if file_name in ['all', con_file_name]:
         schema = StructType([
                 StructField("CT_CA_ID", IntegerType(), False),
                 StructField("CT_DTS", TimestampType(), False),
                 StructField("CT_AMT", FloatType(), False),
                 StructField("CT_NAME", StringType(), False),
         ])
-        load_csv(schema,'CashTransaction.txt','cash_transaction')
+        load_csv(schema, con_file_name, 'cash_transaction')
 
-    # Process all the FINWIRE files
-    if file_name in ['all','FINWIRE']:
+    con_file_name = 'FINWIRE'
+    if file_name in ['all', con_file_name]:
         # These are fixed-width fields, so read the entire line in as "line"
         schema = StructType([
                 StructField("line", StringType(), False),
         ])
 
-        stage_path=f"@{stage}/Batch{batch}/FINWIRE"
+        stage_path = get_stage_path(stage, con_file_name)
+        upload_files(con_file_name, stage_path)
 
         # CMP record types
         df = session.read.schema(schema) \
