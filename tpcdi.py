@@ -226,6 +226,35 @@ def process_files(
         ])
         load_csv(schema,'WatchHistory.txt','watch_history')
 
+    # Process the Trade.txt file
+    if file_name in ['all','Trade.txt']:
+        schema = StructType([
+                StructField("T_ID", IntegerType(), False),
+                StructField("T_DTS", TimestampType(), False),
+                StructField("T_ST_ID", StringType(), False),
+                StructField("T_TT_ID", StringType(), False),
+                StructField("T_IS_CASH", BooleanType(), False),
+                StructField("T_S_SYMB", StringType(), False),
+                StructField("T_QTY", FloatType(),False),
+                StructField("T_BID_PRICE", FloatType(), False),
+                StructField("T_CA_ID", IntegerType(), False),
+                StructField("T_EXEC_NAME", StringType(), False),
+                StructField("T_TRADE_PRICE", FloatType(), True),
+                StructField("T_CHRG", FloatType(), True),
+                StructField("T_COMM", FloatType(), True),
+                StructField("T_TAX", FloatType(), True)
+        ])
+        load_csv(schema,'Trade.txt','trade')
+
+    # Process the TradeHistory.txt file
+    if file_name in ['all','TradeHistory.txt']:
+        schema = StructType([
+                StructField("TH_T_ID", IntegerType(), False),
+                StructField("TH_DTS", TimestampType(), False),
+                StructField("TH_ST_ID", StringType(), False)
+        ])
+        load_csv(schema,'TradeHistory.txt','trade_history')
+
 
 if __name__ == "__main__":
     app()
