@@ -192,5 +192,40 @@ def process_files(
         df = session.read.schema(schema).option("field_delimiter", '|').option("skip_header",1).csv(stage_path).with_column('action_ts', call_function('to_timestamp', col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')))
         save_df(df, 'customer_mgmt')
 
+    # Process the TaxRate.txt file
+    if file_name in ['all','TaxRate.txt']:
+        schema = StructType([
+                StructField("TX_ID", StringType(), False),
+                StructField("TX_NAME", StringType(), True),
+                StructField("TX_RATE", FloatType(), True),
+        ])
+        load_csv(schema,'TaxRate.txt','tax_rate')
+
+    # Process the HR.csv file
+    if file_name in ['all','HR.csv']:
+        schema = StructType([
+                StructField("EMPLOYEE_ID", IntegerType(), False),
+                StructField("MANAGER_ID", IntegerType(), False),
+                StructField("EMPLOYEE_FIRST_NAME", StringType(), True),
+                StructField("EMPLOYEE_LAST_NAME", StringType(), True),
+                StructField("EMPLOYEE_MI", StringType(), True),
+                StructField("EMPLOYEE_JOB_CODE", IntegerType(), True),
+                StructField("EMPLOYEE_BRANCH", StringType(), True),
+                StructField("EMPLOYEE_OFFICE", StringType(), True),
+                StructField("EMPLOYEE_PHONE", StringType(), True)
+        ])
+        load_csv(schema,'HR.csv','hr')
+
+    # Process the WatchHistory.txt file
+    if file_name in ['all','WatchHistory.txt']:
+        schema = StructType([
+                StructField("W_C_ID", IntegerType(), False),
+                StructField("W_S_SYMB", StringType(), True),
+                StructField("W_DTS", TimestampType(), True),
+                StructField("W_ACTION", StringType(), True)
+        ])
+        load_csv(schema,'WatchHistory.txt','watch_history')
+
+
 if __name__ == "__main__":
     app()
