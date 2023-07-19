@@ -3,5 +3,7 @@ target/
 dbt_packages/
 logs/
 credentials.properties
+credentials.json
 .java-version
 .vscode/
+__pycache__/
