@@ -3,7 +3,7 @@ from snowflake.snowpark import Session, DataFrame
 from typing_extensions import Annotated
 from pathlib import Path
 from snowflake.snowpark.types import *
-from snowflake.snowpark.functions import col, call_function, lit
+from snowflake.snowpark.functions import *
 
 # Read the credentials.json file
 with open("credentials.json") as jsonfile:
@@ -30,7 +30,7 @@ def drop_stage(
 
 @app.command()
 def process_files(
-    output_directory: Annotated[str, typer.Option(help='The output directory from the TPC-di DIGen.jar execution.')],
+    output_directory: Annotated[str, typer.Option(help='The output directory from the TPC-DI DIGen.jar execution.')],
     file_name: Annotated[str, typer.Option(help="The TPC-DI file name to upload and process. Pass value 'FINWIRE' to process all of the financial wire files.")] = 'all',
     stage: Annotated[str, typer.Option(help="The stage name to upload to, without specifying '@'.")] = 'upload',
     batch: Annotated[int, typer.Option(help="The TPC-DI batch number to process.")] = 1,
@@ -38,6 +38,10 @@ def process_files(
     skip_upload: Annotated[bool, typer.Option(help="Skip uploading the files?")] = False,
     show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table?")] = False,
 ):
+    # define the stage_path
+    stage_path = f"@{stage}/Batch{batch}/{file_name}"
+    logging.info(f"Stage path: {stage_path}")
+
     # method to control printing the dataframe or saving it
     def save_df(
             df: DataFrame,
@@ -49,14 +53,11 @@ def process_files(
             df.write.mode("overwrite").save_as_table(table_name)
             print(f"{table_name.upper()} table created.")
 
-    # method for creating a table from a CSV
-    def load_csv(
-            schema: StructType,
+    # method for uploading files
+    def upload_files(
             file_name: str,
-            table_name: str,
     ):
         delimiter="|"
-        stage_path=f"@{stage}/Batch{batch}/{file_name}"
             
         if file_name == 'FINWIRE':
             pathlist = Path(output_directory).glob(f"Batch{batch}/FINWIRE??????")
@@ -77,8 +78,20 @@ def process_files(
                 for result in put_result:
                     print(f"File {result.source}: {result.status}")
         
-        stage_path=f"@{stage}/Batch{batch}/{file_name}"
-        df = session.read.schema(schema).option("field_delimiter",delimiter).csv(stage_path)
+        # return the delimiter
+        return delimiter
+        
+        
+
+    # method for creating a table from a CSV
+    def load_csv(
+            schema: StructType,
+            file_name: str,
+            table_name: str,
+    ):
+        delimiter=upload_files(file_name)
+        
+        df = session.read.schema(schema).option("field_delimiter", delimiter).csv(stage_path)
         save_df(df, table_name)
     
     # process the Date.txt file
@@ -188,8 +201,10 @@ def process_files(
         ])
         # customer DataFrame logic
         file_name = 'CustomerMgmt.csv'
-        stage_path = f"@{stage}/Batch{batch}/{file_name}"
-        df = session.read.schema(schema).option("field_delimiter", '|').option("skip_header",1).csv(stage_path).with_column('action_ts', call_function('to_timestamp', col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')))
+        df = session.read.schema(schema).option("field_delimiter", '|') \
+            .option("skip_header",1).csv(stage_path) \
+            .with_column('action_ts', to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')))
+        
         save_df(df, 'customer_mgmt')
 
     # Process the TaxRate.txt file
@@ -242,7 +257,7 @@ def process_files(
                 StructField("T_TRADE_PRICE", FloatType(), True),
                 StructField("T_CHRG", FloatType(), True),
                 StructField("T_COMM", FloatType(), True),
-                StructField("T_TAX", FloatType(), True)
+                StructField("T_TAX", FloatType(), True),
         ])
         load_csv(schema,'Trade.txt','trade')
 
@@ -251,7 +266,7 @@ def process_files(
         schema = StructType([
                 StructField("TH_T_ID", IntegerType(), False),
                 StructField("TH_DTS", TimestampType(), False),
-                StructField("TH_ST_ID", StringType(), False)
+                StructField("TH_ST_ID", StringType(), False),
         ])
         load_csv(schema,'TradeHistory.txt','trade_history')
 
@@ -259,7 +274,7 @@ def process_files(
     if file_name in ['all','StatusType.txt']:
         schema = StructType([
                 StructField("ST_ID", StringType(), False),
-                StructField("ST_NAME", StringType(), False)
+                StructField("ST_NAME", StringType(), False),
         ])
         load_csv(schema,'StatusType.txt','status_type')
 
@@ -269,7 +284,7 @@ def process_files(
                 StructField("TT_ID", StringType(), False),
                 StructField("TT_NAME", StringType(), False),
                 StructField("TT_IS_SELL", BooleanType(), False),
-                StructField("TT_IS_MARKET", BooleanType(), False)
+                StructField("TT_IS_MARKET", BooleanType(), False),
         ])
         load_csv(schema,'TradeType.txt','trade_type')
 
@@ -279,7 +294,7 @@ def process_files(
                 StructField("HH_H_T_ID", IntegerType(), False),
                 StructField("HH_T_ID", IntegerType(), False),
                 StructField("HH_BEFORE_QTY", FloatType(), False),
-                StructField("HH_AFTER_QTY", FloatType(), False)
+                StructField("HH_AFTER_QTY", FloatType(), False),
         ])
         load_csv(schema,'HoldingHistory.txt','holding_history')
 
@@ -289,10 +304,93 @@ def process_files(
                 StructField("CT_CA_ID", IntegerType(), False),
                 StructField("CT_DTS", TimestampType(), False),
                 StructField("CT_AMT", FloatType(), False),
-                StructField("CT_NAME", StringType(), False)
+                StructField("CT_NAME", StringType(), False),
         ])
         load_csv(schema,'CashTransaction.txt','cash_transaction')
 
+    # Process all the FINWIRE files
+    if file_name in ['all','FINWIRE']:
+        # These are fixed-width fields, so read the entire line in as "line"
+        schema = StructType([
+                StructField("line", StringType(), False),
+        ])
+
+        stage_path=f"@{stage}/Batch{batch}/FINWIRE"
+
+        # CMP record types
+        df = session.read.schema(schema) \
+            .option('field_delimiter', '|') \
+            .csv(stage_path) \
+            .withColumn('pts', substring(col("line"), lit(0), lit(15))) \
+            .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
+            .where(col('rec_type') == 'CMP') \
+            .with_column('company_name', substr(col('line'), lit(19), lit(60))) \
+            .withColumn('cik', substring(col("line"), lit(79), lit(10))) \
+            .withColumn('status', substring(col("line"), lit(89), lit(4))) \
+            .withColumn('industry_id', substring(col("line"), lit(93), lit(2))) \
+            .withColumn('sp_rating', substring(col("line"), lit(95), lit(4))) \
+            .withColumn('founding_date', substring(col("line"), lit(99), lit(8))) \
+            .withColumn('address_line1', substring(col("line"), lit(107), lit(80))) \
+            .withColumn('address_line2', substring(col("line"), lit(187), lit(80))) \
+            .withColumn('postal_code', substring(col("line"), lit(267), lit(12))) \
+            .withColumn('city', substring(col("line"), lit(279), lit(25))) \
+            .withColumn('state_province', substring(col("line"), lit(304), lit(20))) \
+            .withColumn('country', substring(col("line"), lit(324), lit(24))) \
+            .withColumn('ceo_name', substring(col("line"), lit(348), lit(46))) \
+            .withColumn('description', substring(col("line"), lit(394), lit(150))) \
+            .with_column('pts', to_timestamp(col('pts'), lit("yyyymmdd-hhmiss"))) \
+            .drop(col('line'))
+
+        save_df(df, 'cmp')
+
+        # SEC record types
+        df = session.read.schema(schema) \
+            .option('field_delimiter', '|') \
+            .csv(stage_path) \
+            .withColumn('pts', substring(col("line"), lit(0), lit(15))) \
+            .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
+            .where(col('rec_type') == 'SEC') \
+            .withColumn('symbol', substring(col("line"), lit(19), lit(15))) \
+            .withColumn('issue_type', substring(col("line"), lit(34), lit(6))) \
+            .withColumn('status', substring(col("line"), lit(40), lit(4))) \
+            .withColumn('name', substring(col("line"), lit(44), lit(70))) \
+            .withColumn('ex_id', substring(col("line"), lit(114), lit(6))) \
+            .withColumn('sh_out', substring(col("line"), lit(120), lit(13))) \
+            .withColumn('first_trade_date', substring(col("line"), lit(133), lit(8))) \
+            .withColumn('first_exchange_date', substring(col("line"), lit(141), lit(8))) \
+            .withColumn('dividend', substring(col("line"), lit(149), lit(12))) \
+            .withColumn('co_name_or_cik', substring(col("line"), lit(161), lit(60))) \
+            .withColumn("pts", to_timestamp(col("pts"), lit("yyyymmdd-hhmiss"))) \
+            .drop(col('line'))
+
+        save_df(df, 'sec')
+
+        # FIN record types
+        df = session.read.schema(schema) \
+            .option('field_delimiter', '|') \
+            .csv(stage_path) \
+            .withColumn('pts', substring(col("line"), lit(0), lit(15))) \
+            .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
+            .where(col('rec_type') == 'FIN') \
+            .withColumn('year', substring(col("line"), lit(19), lit(4))) \
+            .withColumn('quarter', substring(col("line"), lit(23), lit(1))) \
+            .withColumn('quarter_start_date', substring(col("line"), lit(24), lit(8))) \
+            .withColumn('posting_date', substring(col("line"), lit(32), lit(8))) \
+            .withColumn('revenue', substring(col("line"), lit(40), lit(17))) \
+            .withColumn('earnings', substring(col("line"), lit(57), lit(17))) \
+            .withColumn('eps', substring(col("line"), lit(74), lit(12))) \
+            .withColumn('diluted_eps', substring(col("line"), lit(86), lit(12))) \
+            .withColumn('margin', substring(col("line"), lit(98), lit(12))) \
+            .withColumn('inventory', substring(col("line"), lit(110), lit(17))) \
+            .withColumn('assets', substring(col("line"), lit(127), lit(17))) \
+            .withColumn('liabilities', substring(col("line"), lit(144), lit(17))) \
+            .withColumn('sh_out', substring(col("line"), lit(161), lit(13))) \
+            .withColumn('diluted_sh_out', substring(col("line"), lit(174), lit(13))) \
+            .withColumn('co_name_or_cik', substring(col("line"), lit(187), lit(60))) \
+            .withColumn("pts", to_timestamp(col("pts"), lit("yyyymmdd-hhmiss"))) \
+            .drop(col("line"))
+
+        save_df(df, 'fin')
 
 if __name__ == "__main__":
     app()
