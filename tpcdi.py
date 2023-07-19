@@ -38,7 +38,6 @@ def process_files(
     skip_upload: Annotated[bool, typer.Option(help="Skip uploading the files?")] = False,
     show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table?")] = False,
 ):
-    
     # method to control printing the dataframe or saving it
     def save_df(
             df: DataFrame,
@@ -47,45 +46,40 @@ def process_files(
         if show:
             df.show()
         else:
-            df.write().mode("overwrite").save_as_table(table_name)
+            df.write.mode("overwrite").save_as_table(table_name)
+            print(f"{table_name.upper()} table created.")
 
     # method for creating a table from a CSV
     def load_csv(
             schema: StructType,
-            stage_path: str,
-            delimiter: str,
+            file_name: str,
             table_name: str,
     ):
-        dfr = session.read.schema(schema).option("field_delimiter",delimiter).csv(stage_path).write.mode("overwrite").save_as_table(table_name)
-        #df = dfr.csv(stage_path)
-
-        #df.write.mode("overwrite").save_as_table(table_name)
-
-    
-    delimiter="|"
-    table_name=None
-    stage_path=f"@{stage}/Batch{batch}/{file_name}"
+        delimiter="|"
+        stage_path=f"@{stage}/Batch{batch}/{file_name}"
+            
+        if file_name == 'FINWIRE':
+            pathlist = Path(output_directory).glob(f"Batch{batch}/FINWIRE??????")
+        else:
+            pathlist = Path(output_directory).glob(f"Batch{batch}/{file_name}")
         
-    if file_name == 'FINWIRE':
-        pathlist = Path(output_directory).glob(f"Batch{batch}/FINWIRE??????")
-    else:
-        pathlist = Path(output_directory).glob(f"Batch{batch}/{file_name}")
-    
-    for file in pathlist:
-        # capture the delimiter
-        if file_name != 'FINWIRE':
-            logging.info(f"Suffix: {file.suffix}")
-            if file.suffix == '.csv':
-                delimiter=','
-            table_name= re.sub(r'(?<!^)(?=[A-Z])', '_', file.stem).lower()
-            logging.info(f"Delimiter: {delimiter}")
-            logging.info(f"Table_name: {table_name}")
+        for file in pathlist:
+            # capture the delimiter
+            if file_name != 'FINWIRE':
+                logging.info(f"Suffix: {file.suffix}")
+                if file.suffix == '.csv':
+                    delimiter=','
+                logging.info(f"Delimiter: {delimiter}")
 
-        # put the file(s) in the stage
-        if not skip_upload:
-            put_result = session.file.put(str(file), stage_path, overwrite=overwrite, parallel=4, auto_compress=True )
-            for result in put_result:
-                print(f"File {result.source}: {result.status}")
+            # put the file(s) in the stage
+            if not skip_upload:
+                put_result = session.file.put(str(file), stage_path, overwrite=overwrite, parallel=4, auto_compress=True )
+                for result in put_result:
+                    print(f"File {result.source}: {result.status}")
+        
+        stage_path=f"@{stage}/Batch{batch}/{file_name}"
+        df = session.read.schema(schema).option("field_delimiter",delimiter).csv(stage_path)
+        save_df(df, table_name)
     
     # process the Date.txt file
     if file_name in ['all','Date.txt']:
@@ -110,7 +104,7 @@ def process_files(
                 StructField("HOLIDAY_FLAG", BooleanType(), False)
         ])
 
-        load_csv(schema,stage_path,delimiter,table_name)
+        load_csv(schema,'Date.txt','date')
 
 if __name__ == "__main__":
     app()
