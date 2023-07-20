@@ -30,7 +30,6 @@ models:
   dbt_tpcdi:
     example:
       +materialized: view
-      +enabled: false
     bronze:
       +schema: bronze
       +materialized: table

@@ -1,9 +1,9 @@
 import sys, typer, json, re, logging
 from snowflake.snowpark import Session, DataFrame
-from typing_extensions import Annotated
-from pathlib import Path
 from snowflake.snowpark.types import *
 from snowflake.snowpark.functions import *
+from typing_extensions import Annotated
+from pathlib import Path
 
 app = typer.Typer(help="A utility for loading TPC-DI generated files into Snowflake.")
 
