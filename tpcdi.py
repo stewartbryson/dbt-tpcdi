@@ -5,19 +5,22 @@ from pathlib import Path
 from snowflake.snowpark.types import *
 from snowflake.snowpark.functions import *
 
-# Read the credentials.json file
-with open("credentials.json") as jsonfile:
-    credentials_dict = json.load(jsonfile)
+app = typer.Typer(help="A utility for loading TPC-DI generated files into Snowflake.")
 
-session = Session.builder.configs(credentials_dict).create()
-print(f"Session: {session}")
+def get_session():
+    # Read the credentials.json file
+    with open("credentials.json") as jsonfile:
+        credentials_dict = json.load(jsonfile)
 
-app = typer.Typer(help="A utility for loading TPC-DI generated files to Snowflake.")
+    session = Session.builder.configs(credentials_dict).create()
+    print(f"Session: {session}")
+    return session
 
 @app.command()
 def recreate_stage(
         name: Annotated[str, typer.Option(help="Name of the stage to recreate.")],
 ):
+    session = get_session()
     session.sql(f"create or replace stage {name} directory = (enable = true)").collect()
     print(f"Stage {name} recreated.")
 
@@ -25,6 +28,7 @@ def recreate_stage(
 def drop_stage(
         name: Annotated[str, typer.Option(help="Name of the stage to recreate.")],
 ):
+    session = get_session()
     session.sql(f"drop stage {name}").collect()
     print(f"Stage {name} dropped.")
 
@@ -38,6 +42,7 @@ def process_files(
     skip_upload: Annotated[bool, typer.Option(help="Skip uploading the files?")] = False,
     show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table?")] = False,
 ):
+    session = get_session()
     def get_stage_path(
             stage:str,
             file_name:str,
@@ -219,7 +224,6 @@ def process_files(
             .select(
                 col('*'),
                 get(col('$1'), lit('@ActionTS')).cast('STRING').alias('action_ts'),
-                get(col('$1'), lit('@ActionType')).cast('STRING').alias('action_type'),
                 get_xml_element('phone1', 'C_CTRY_CODE', 'STRING', False).alias('phone1_ctry'),
                 get_xml_element('phone1', 'C_AREA_CODE', 'STRING', False).alias('phone1_area'),
                 get_xml_element('phone1', 'C_LOCAL', 'STRING', False).alias('phone1_local'),
@@ -236,6 +240,7 @@ def process_files(
             ) \
             .select(
                 to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')).alias('action_ts'),
+                get(col('$1'), lit('@ActionType')).cast('STRING').alias('action_type'),
                 get(col('customer'), lit('@C_ID')).cast('NUMBER').alias('c_id'),
                 get(col('customer'), lit('@C_TAX_ID')).cast('STRING').alias('c_tax_id'),
                 get(col('customer'), lit('@C_GNDR')).cast('STRING').alias('c_gndr'),
@@ -245,8 +250,9 @@ def process_files(
                 get_xml_element('name','C_F_NAME','STRING'),
                 get_xml_element('name','C_M_NAME','STRING'),
                 get_xml_element('address','C_ADLINE1','STRING'),
-                get_xml_element('address', 'ADLINE2', 'STRING'),
+                get_xml_element('address', 'C_ADLINE2', 'STRING'),
                 get_xml_element('address','C_ZIPCODE','STRING'),
+                get_xml_element('address','C_CITY','STRING'),
                 get_xml_element('address','C_STATE_PROV','STRING'),
                 get_xml_element('address','C_CTRY','STRING'),
                 get_xml_element('contact_info','C_PRIM_EMAIL','STRING'),
