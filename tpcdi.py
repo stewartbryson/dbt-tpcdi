@@ -40,7 +40,7 @@ def process_files(
     batch: Annotated[int, typer.Option(help="The TPC-DI batch number to process.")] = 1,
     overwrite: Annotated[bool, typer.Option(help="Overwrite the file even if it exists?")] = False,
     skip_upload: Annotated[bool, typer.Option(help="Skip uploading the files?")] = False,
-    show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table?")] = False,
+    show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table? This was useful during development")] = False,
 ):
     session = get_session()
     def get_stage_path(
