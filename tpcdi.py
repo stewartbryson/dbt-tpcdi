@@ -97,6 +97,31 @@ def process_files(
         
         df = session.read.schema(schema).option("field_delimiter", delimiter).csv(stage_path)
         save_df(df, table_name)
+
+    def get_xml_element(
+            column:str,
+            element:str,
+            datatype:str,
+            with_alias:bool = True
+        ):
+            new_element = get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
+            if with_alias:
+                return get(xmlget(col(column), lit(element)), lit('$')).cast(datatype).alias(element)
+            else:
+                return get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
+    
+    def get_phone_number(
+            phone_id:str
+    ):
+        return concat(
+            col(f"phone{phone_id}_ctry"),
+            when(col(f"phone{phone_id}_ctry") == '', '').otherwise("-"),
+            col(f"phone{phone_id}_area"),
+            when(col(f"phone{phone_id}_area") == '', '').otherwise("-"),
+            col(f"phone{phone_id}_local"),
+            when(col(f"phone{phone_id}_ext") == '', '').otherwise(" ext: "),
+            col(f"phone{phone_id}_ext")
+        ).alias(f"c_phone_{phone_id}")
     
     con_file_name = 'Date.txt'
     if file_name in ['all', con_file_name]:
@@ -173,53 +198,71 @@ def process_files(
 
     con_file_name = 'CustomerMgmt.xml'
     if file_name in ['all', con_file_name]:
-        schema = StructType([
-                StructField("ACTION_TYPE", StringType(), False),
-                StructField("ACTION_TS", StringType(), True),
-                StructField("C_ID", IntegerType(), True),
-                StructField("C_TAX_ID", StringType(), True),
-                StructField("C_GNDR", StringType(), True),
-                StructField("C_TIER", IntegerType(), True),
-                StructField("C_DOB", DateType(), True),
-                StructField("C_L_NAME", StringType(), True),
-                StructField("C_F_NAME", StringType(), True),
-                StructField("C_M_NAME", StringType(), True),
-                StructField("C_ADLINE1", StringType(), True),
-                StructField("C_ADLINE2", StringType(), True),
-                StructField("C_ZIPCODE", StringType(), True),
-                StructField("C_CITY", StringType(), True),
-                StructField("C_STATE_PROV", StringType(), True),
-                StructField("C_CTRY", StringType(), True),
-                StructField("C_PRIM_EMAIL", StringType(), True),
-                StructField("C_ALT_EMAIL", StringType(), True),
-                StructField("C_PHONE_1", StringType(), True),
-                StructField("C_PHONE_2", StringType(), True),
-                StructField("C_PHONE_3", StringType(), True),
-                StructField("C_LCL_TX_ID", StringType(), True),
-                StructField("C_NAT_TX_ID", StringType(), True),
-                StructField("CA_ID", IntegerType(), True),
-                StructField("CA_TAX_ST", StringType(), True),
-                StructField("CA_B_ID", IntegerType(), True),
-                StructField("CA_C_ID", IntegerType(), True),
-                StructField("CA_NAME", StringType(), True)
-        ])
 
-        # custom DataFrame logic for dealing with XML
-        # df = session.read.schema(schema).option("field_delimiter", '|') \
-        #     .option("skip_header",1) \
-        #     .csv(get_stage_path(stage, con_file_name)) \
-        #     .with_column('action_ts', to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')))
+        upload_files(con_file_name, get_stage_path(stage, con_file_name))
+
         df = session.read \
             .option('STRIP_OUTER_ELEMENT', True) \
             .xml(get_stage_path(stage, con_file_name)) \
-            .with_column('action_type', get(col('$1'), lit('@ActionType')).cast('STRING')) \
-            .with_column('action_ts', get(col('$1'), lit('@ActionTS')).cast('TIMESTAMP')) \
-            .with_column('customer', xmlget(col('$1'), lit('Customer'), 0)) \
-            .with_column('name', xmlget(col('customer'), lit('Name'), 0)) \
-            .with_column('c_dob', get(col('customer'), lit('@C_DOB')).cast('DATE')) \
-            
+            .select(
+                col('$1'),
+                xmlget(col('$1'), lit('Customer'), 0).alias('customer'),
+                xmlget(col('customer'), lit('Name'), 0).alias('name'),
+                xmlget(col('customer'), lit('Address'), 0).alias('address'),
+                xmlget(col('customer'), lit('ContactInfo'), 0).alias('contact_info'),
+                xmlget(col('contact_info'), lit('C_PHONE_1')).alias('phone1'),
+                xmlget(col('contact_info'), lit('C_PHONE_2')).alias('phone2'),
+                xmlget(col('contact_info'), lit('C_PHONE_3')).alias('phone3'),
+                xmlget(col('customer'), lit('TaxInfo'), 0).alias('tax_info'),
+                xmlget(col('customer'), lit('Account'), 0).alias('account'),
+            ) \
+            .select(
+                col('*'),
+                get(col('$1'), lit('@ActionTS')).cast('STRING').alias('action_ts'),
+                get(col('$1'), lit('@ActionType')).cast('STRING').alias('action_type'),
+                get_xml_element('phone1', 'C_CTRY_CODE', 'STRING', False).alias('phone1_ctry'),
+                get_xml_element('phone1', 'C_AREA_CODE', 'STRING', False).alias('phone1_area'),
+                get_xml_element('phone1', 'C_LOCAL', 'STRING', False).alias('phone1_local'),
+                get_xml_element('phone1', 'C_EXT', 'STRING', False).alias('phone1_ext'),
+                get_xml_element('phone2', 'C_CTRY_CODE', 'STRING', False).alias('phone2_ctry'),
+                get_xml_element('phone2', 'C_AREA_CODE', 'STRING', False).alias('phone2_area'),
+                get_xml_element('phone2', 'C_LOCAL', 'STRING', False).alias('phone2_local'),
+                get_xml_element('phone2', 'C_EXT', 'STRING', False).alias('phone2_ext'),
+                get_xml_element('phone3', 'C_CTRY_CODE', 'STRING', False).alias('phone3_ctry'),
+                get_xml_element('phone3', 'C_AREA_CODE', 'STRING', False).alias('phone3_area'),
+                get_xml_element('phone3', 'C_LOCAL', 'STRING', False).alias('phone3_local'),
+                get_xml_element('phone3', 'C_EXT', 'STRING', False).alias('phone3_ext'),
+                get(col('customer'), lit('@C_TIER')).cast('STRING').alias('c_tier'),
+            ) \
+            .select(
+                to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')).alias('action_ts'),
+                get(col('customer'), lit('@C_ID')).cast('NUMBER').alias('c_id'),
+                get(col('customer'), lit('@C_TAX_ID')).cast('STRING').alias('c_tax_id'),
+                get(col('customer'), lit('@C_GNDR')).cast('STRING').alias('c_gndr'),
+                try_cast(col('c_tier'),'NUMBER').alias('c_tier'),
+                get(col('customer'), lit('@C_DOB')).cast('DATE').alias('c_dob'),
+                get_xml_element('name','C_L_NAME','STRING'),
+                get_xml_element('name','C_F_NAME','STRING'),
+                get_xml_element('name','C_M_NAME','STRING'),
+                get_xml_element('address','C_ADLINE1','STRING'),
+                get_xml_element('address', 'ADLINE2', 'STRING'),
+                get_xml_element('address','C_ZIPCODE','STRING'),
+                get_xml_element('address','C_STATE_PROV','STRING'),
+                get_xml_element('address','C_CTRY','STRING'),
+                get_xml_element('contact_info','C_PRIM_EMAIL','STRING'),
+                get_xml_element('contact_info','C_ALT_EMAIL','STRING'),
+                get_phone_number('1'),
+                get_phone_number('2'),
+                get_phone_number('3'),
+                get_xml_element('tax_info','C_LCL_TX_ID','STRING'),
+                get_xml_element('tax_info','C_NAT_TX_ID','STRING'),
+                get(col('account'), lit('@CA_ID')).cast('NUMBER').alias('ca_id'),
+                get(col('account'), lit('@CA_TAX_ST')).cast('NUMBER').alias('ca_tax_st'),
+                get_xml_element('account','CA_B_ID','NUMBER'),
+                get_xml_element('account','CA_NAME','STRING'),
+            )
         
-        save_df(df, 'customer_mgmt_test')
+        save_df(df, 'customer_mgmt')
 
     con_file_name = 'TaxRate.txt'
     if file_name in ['all', con_file_name]:
