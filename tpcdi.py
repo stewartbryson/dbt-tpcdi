@@ -16,7 +16,7 @@ def get_session():
     print(f"Session: {session}")
     return session
 
-@app.command(help="CREATE or REPLACE the stage. Mostly used while developing this script.")
+@app.command(help="CREATE or REPLACE the stage. Mostly used while developing this utility.")
 def recreate_stage(
         name: Annotated[str, typer.Option(help="Name of the stage to recreate.")],
 ):
