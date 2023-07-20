@@ -16,7 +16,7 @@ def get_session():
     print(f"Session: {session}")
     return session
 
-@app.command()
+@app.command(help="CREATE or REPLACE the stage. Mostly used while developing this script.")
 def recreate_stage(
         name: Annotated[str, typer.Option(help="Name of the stage to recreate.")],
 ):
@@ -24,7 +24,7 @@ def recreate_stage(
     session.sql(f"create or replace stage {name} directory = (enable = true)").collect()
     print(f"Stage {name} recreated.")
 
-@app.command()
+@app.command(help="DROP the stage. Useful when all the data has been successfully loaded.")
 def drop_stage(
         name: Annotated[str, typer.Option(help="Name of the stage to recreate.")],
 ):
@@ -32,7 +32,7 @@ def drop_stage(
     session.sql(f"drop stage {name}").collect()
     print(f"Stage {name} dropped.")
 
-@app.command()
+@app.command(help="Upload a file or files into the stage and build the dependent tables.")
 def process_files(
     output_directory: Annotated[str, typer.Option(help='The output directory from the TPC-DI DIGen.jar execution.')],
     file_name: Annotated[str, typer.Option(help="The TPC-DI file name to upload and process. Pass value 'FINWIRE' to process all of the financial wire files.")] = 'all',
