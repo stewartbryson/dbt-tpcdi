@@ -14,35 +14,39 @@ def get_session():
 
     session = Session.builder.configs(credentials_dict).create()
     print(f"Session: {session}")
+
     return session
 
-@app.command(help="CREATE or REPLACE the stage. Mostly used while developing this utility.")
+@app.command(help="CREATE or REPLACE the stage. Mostly useful while developing this utility.")
 def recreate_stage(
-        name: Annotated[str, typer.Option(help="Name of the stage to recreate.")],
+        stage: Annotated[str, typer.Option(help="Name of the stage to recreate.")] = 'tpcdi',
 ):
     session = get_session()
-    session.sql(f"create or replace stage {name} directory = (enable = true)").collect()
-    print(f"Stage {name} recreated.")
+    session.sql(f"create or replace stage {stage} directory = (enable = true)").collect()
+    print(f"Stage {stage} recreated.")
 
 @app.command(help="DROP the stage. Useful when all the data has been successfully loaded.")
 def drop_stage(
-        name: Annotated[str, typer.Option(help="Name of the stage to recreate.")],
+        stage: Annotated[str, typer.Option(help="Name of the stage to recreate.")] = 'tpcdi',
 ):
     session = get_session()
-    session.sql(f"drop stage {name}").collect()
-    print(f"Stage {name} dropped.")
+    session.sql(f"drop stage {stage}").collect()
+    print(f"Stage {stage} dropped.")
 
 @app.command(help="Upload a file or files into the stage and build the dependent tables.")
 def process_files(
     output_directory: Annotated[str, typer.Option(help='The output directory from the TPC-DI DIGen.jar execution.')],
     file_name: Annotated[str, typer.Option(help="The TPC-DI file name to upload and process. Pass value 'FINWIRE' to process all of the financial wire files.")] = 'all',
-    stage: Annotated[str, typer.Option(help="The stage name to upload to, without specifying '@'.")] = 'upload',
-    batch: Annotated[int, typer.Option(help="The TPC-DI batch number to process.")] = 1,
+    stage: Annotated[str, typer.Option(help="The stage name to upload to, without specifying '@'.")] = 'tpcdi',
+    batch: Annotated[int, typer.Option(help="The TPC-DI batch number to process. Currently only supports the default of '1'.")] = 1,
     overwrite: Annotated[bool, typer.Option(help="Overwrite the file even if it exists?")] = False,
     skip_upload: Annotated[bool, typer.Option(help="Skip uploading the files?")] = False,
     show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table? This was useful during development")] = False,
 ):
     session = get_session()
+    # create the stage if it doesn't exist
+    session.sql(f"create stage if not exists {stage} directory = (enable = true)").collect()
+
     def get_stage_path(
             stage:str,
             file_name:str,
@@ -65,6 +69,7 @@ def process_files(
             file_name: str,
             stage_path: str,
     ):
+
         delimiter="|"
             
         if file_name == 'FINWIRE':
@@ -89,8 +94,6 @@ def process_files(
         # return the delimiter
         return delimiter
         
-        
-
     # method for creating a table from a CSV
     def load_csv(
             schema: StructType,
