@@ -61,7 +61,9 @@ def process_files(
         if show:
             df.show()
         else:
-            df.write.mode("overwrite").save_as_table(table_name)
+            df.write.mode("overwrite") \
+            .save_as_table(table_name)
+
             print(f"{table_name.upper()} table created.")
 
     # method for uploading files
@@ -103,7 +105,10 @@ def process_files(
         stage_path = get_stage_path(stage, file_name)
         delimiter=upload_files(file_name, stage_path)
         
-        df = session.read.schema(schema).option("field_delimiter", delimiter).csv(stage_path)
+        df = session.read.schema(schema) \
+            .option("field_delimiter", delimiter) \
+            .csv(stage_path)
+        
         save_df(df, table_name)
 
     def get_xml_element(
@@ -209,6 +214,7 @@ def process_files(
 
         upload_files(con_file_name, get_stage_path(stage, con_file_name))
 
+        # this might get hairy
         df = session.read \
             .option('STRIP_OUTER_ELEMENT', True) \
             .xml(get_stage_path(stage, con_file_name)) \
