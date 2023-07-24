@@ -309,10 +309,10 @@ I'm loading with an x-small warehouse and 4 threads, with a `DIGen.jar` scaling 
 Although it wasn't my goal, it would be cool to enhance this project so that it could be used to run and measure the benchmark. 
 These are my thoughts on where to take this next:
 
-1. Complete Batch2 and Batch3 using dbt incremental models, and put the audit queries in as dbt tests.
+1. Complete `Batch2` and `Batch3` using dbt incremental models, and put the audit queries in as dbt tests.
 2. Refactor tpcdi.py to only upload the files and do that concurrently, then put all the Snowpark transformations into procedures so they can be executed as concurrent tasks.
-3. Maybe take another pass at credential handling, using the config.toml from Snowflake CLI.
-Provide a command-line option --schema so it can be specified during loading, instead of using CURRENT_SCHEMA. In fact, this one is so simple I may knock it out this week.
+3. Maybe take another pass at credential handling, using the `config.toml` from [Snowflake CLI](https://github.com/snowflake-labs/snowcli#cli-tour-and-quickstart).
+Provide a command-line option `--schema` so it can be specified during loading, instead of using `CURRENT_SCHEMA`.
 
 If you are interested in contributing, jump on board. You don't need my permission, or even incredible skill, clearly. 
 Just open a pull request.
