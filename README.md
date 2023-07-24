@@ -22,7 +22,7 @@ Finally, I used a Medallion Lakehouse Architecture with Bronze, Silver, and Gold
 # Using DIGen.jar to Generate Source Files
 The Java program to generate the source files is downloaded by [filling out a form on the TPC-DI website](https://www.tpc.org/TPC_Documents_Current_Versions/download_programs/tools-download-request5.asp?bm_type=TPC-DI&bm_vers=1.1.0&mode=CURRENT-ONLY) and clicking a link in an email. Once unzipped, we have to make one slight change for running on macOS:
 
-```
+```bash
 unzip 66a2b600-af36-4198-bfbc-c94c40cc22af-tpc-di-tool.zip && \
 mv Tools/PDGF Tools/pdgf && \ #clearly written on a case-insensitive OS
 cd Tools
@@ -31,7 +31,7 @@ cd Tools
 I couldn't find any way to execute the provided JAR with a Java version newer than `1.8`. I spent some time trying to rebuild the JAR file using a newer Java version for posterity, but it was a fool's errand.
 I installed [Azul Zulu Java 1.8](https://www.azul.com/downloads/?package=jdk#zulu) and used [jEnv](https://www.jenv.be/) to set a local version, and with that, we can see the help context from the JAR:
 
-```bash
+```
 jenv add /Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home && \
 jenv local 1.8 && \
 java -jar DIGen.jar --help
