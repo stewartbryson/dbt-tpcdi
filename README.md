@@ -3,13 +3,21 @@ This project contains two distinct portions:
 1. A CLI developed using [Python Snowpark](https://docs.snowflake.com/en/developer-guide/snowpark/python/index) and [Typer](https://typer.tiangolo.com/).
 2. A dbt project for building the data warehouse defined in the [TPC-DI](https://www.tpc.org/tpcdi/) specification.
 
+
 ![Figure 1.2–1 from the TPC-DI specification describes the ETL process.](images/tpc-di-etl-diagram.png)
 
-I should be clear in my goal here: I am not attempting to *actually run and measure* the TPC-DI benchmark. The `tpcdi.py` CLI in this repository is single-threaded and ingests the data sequentially, which would be the worst approach if trying to optimize for a benchmark. Instead, I needed a dataset that could be used to mimic data engineering workloads inside of Snowflake, so I just wanted the files loaded.
+I should be clear in my goal here: I am not attempting to *actually run and measure* the TPC-DI benchmark.
+The `tpcdi.py` CLI in this repository is single-threaded and ingests the data sequentially, which would be the worst approach if trying to optimize for a benchmark.
+Instead, I needed a dataset that could be used to mimic data engineering workloads inside of Snowflake, so I just wanted the files loaded.
+
 
 ![Figure 1.4–1 from the TPC-DI specification describes the target logical model. More on DimTrade later.](images/tpc-di-logical-model.png)
 
-I took a few liberties with the TPC-DI specification to update it a bit for Snowflake. I replaced `CamelCase` names with `SNAKE_CASE`, mostly out of irritation with readability. Secondly, I just couldn't stand for having the `DimTrade` table be "both a dimension table and a fact table, depending on how it is being used" as it was designed by TPC-DI. That is clearly a decision made during an era when storage and compute were constrained, so in my design, I created both `DIM_TRADE` and `FACT_TRADE` tables. Finally, I used a Medallion Lakehouse Architecture with Bronze, Silver, and Gold zones, with the logical model above materialized in the Gold zone.
+
+I took a few liberties with the TPC-DI specification to update it a bit for Snowflake. I replaced `CamelCase` names with `SNAKE_CASE`, mostly out of irritation with readability.
+Secondly, I just couldn't stand for having the `DimTrade` table be "both a dimension table and a fact table, depending on how it is being used" as it was designed by TPC-DI.
+That is clearly a decision made during an era when storage and compute were constrained, so in my design, I created both `DIM_TRADE` and `FACT_TRADE` tables.
+Finally, I used a Medallion Lakehouse Architecture with Bronze, Silver, and Gold zones, with the logical model above materialized in the Gold zone.
 
 # Using DIGen.jar to Generate Source Files
 The Java program to generate the source files is downloaded by [filling out a form on the TPC-DI website](https://www.tpc.org/TPC_Documents_Current_Versions/download_programs/tools-download-request5.asp?bm_type=TPC-DI&bm_vers=1.1.0&mode=CURRENT-ONLY) and clicking a link in an email. Once unzipped, we have to make one slight change for running on macOS:
@@ -20,7 +28,8 @@ mv Tools/PDGF Tools/pdgf && \ #clearly written on a case-insensitive OS
 cd Tools
 ```
 
-I couldn't find any way to execute the provided JAR with a Java version newer than `1.8`. I spent some time trying to rebuild the JAR file using a newer Java version for posterity, but it was a fool's errand. I installed [Azul Zulu Java 1.8](https://www.azul.com/downloads/?package=jdk#zulu) and used [jEnv](https://www.jenv.be/) to set a local version, and with that, we can see the help context from the JAR:
+I couldn't find any way to execute the provided JAR with a Java version newer than `1.8`. I spent some time trying to rebuild the JAR file using a newer Java version for posterity, but it was a fool's errand.
+I installed [Azul Zulu Java 1.8](https://www.azul.com/downloads/?package=jdk#zulu) and used [jEnv](https://www.jenv.be/) to set a local version, and with that, we can see the help context from the JAR:
 
 ```
 jenv add /Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home && \
@@ -36,7 +45,11 @@ usage: DIGen
  -v                   print DIGen version
  ```
 
-This utility will generate a bunch of different data files in various formats with a scaling (or multiplication) factor determining how much data the files contain. It attempts to mimic ETL processes at the time the specification was written, which generally utilized file extracts from source systems. It generates CSVs and pipe-separated files (PSVs?), which are quite simple with Snowpark. The two file formats that proved the most fun and challenging were fixed-width fields and XML, as both required heavy DataFrame transformations. The files are generated in batches, with `Batch1` representing the historical load, and `Batch2` and `Batch3` representing various incremental loads. Currently, I've only tested the loader against `Batch1` and the dbt models have not yet been extended to handle additional batches. Also, I haven't yet implemented the Audit portion of the specification, which is somewhat embarrassing as a former co-founder of a data quality company.
+This utility will generate a bunch of different data files in various formats with a scaling (or multiplication) factor determining how much data the files contain. 
+It attempts to mimic ETL processes at the time the specification was written, which generally utilized file extracts from source systems. It generates CSVs and pipe-separated files (PSVs?), which are quite simple with Snowpark. 
+The two file formats that proved the most fun and challenging were fixed-width fields and XML, as both required heavy DataFrame transformations. The files are generated in batches, with `Batch1` representing the historical load, and `Batch2` and `Batch3` representing various incremental loads. 
+Currently, I've only tested the loader against `Batch1` and the dbt models have not yet been extended to handle additional batches. 
+Also, I haven't yet implemented the Audit portion of the specification, which is somewhat embarrassing as a former co-founder of a data quality company.
 
 ```java -jar DIGen.jar -o ~/dev/tpcdi-output -sf 10 && \
 ls -lhtr ~/dev/tpcdi-output/Batch1
@@ -76,7 +89,8 @@ python tpcdi.py --help
 
 ![Output from `tpcdi.py --help`](images/tpcdi-help.png)
 
-I created the loader using Typer for the CLI interface and Snowpark for uploading files, creating DataFrames from those files - in some cases doing heavy transformations - and saving them as tables. Credentials are provided using a credentials.json file in the root directory, and looks like this:
+I created the loader using Typer for the CLI interface and Snowpark for uploading files, creating DataFrames from those files -- in some cases doing heavy transformations -- and saving them as tables. 
+Credentials are provided using a credentials.json file in the root directory, and looks like this:
 
 ```
 {
@@ -90,7 +104,9 @@ I created the loader using Typer for the CLI interface and Snowpark for uploadin
 }
 ```
 
-Some improvements could be made to the credentials, schema, and database handling. The utility writes the data to whatever database and schema is specified in the credentials, so those aspects of the connection are required. Loading the files is accomplished with the process-files command and we can see the help context below:
+Some improvements could be made to the credentials, schema, and database handling.
+The utility writes the data to whatever database and schema is specified in the credentials, so those aspects of the connection are required.
+Loading the files is accomplished with the process-files command and we can see the help context below:
 
 ```
 ❯ python tpcdi.py process-files --help
@@ -98,7 +114,10 @@ Some improvements could be made to the credentials, schema, and database handlin
 
 ![Output from `tpcdi.py process-files --help`](images/tpcdi-process-files-help.png)
 
-Let's start by loading a rather simple file - the `StatusType.txt`  which is pipe-delimited. I'll first demonstrate the `--show` option, which displays a sample of the DataFrame instead of loading it to a table. As you might have guessed, I added this option to aid in the development of the loader. Then I'll demonstrate loading the table:
+Let's start by loading a rather simple file - the `StatusType.txt`  which is pipe-delimited. 
+I'll first demonstrate the `--show` option, which displays a sample of the DataFrame instead of loading it to a table. 
+As you might have guessed, I added this option to aid in the development of the loader. 
+Then I'll demonstrate loading the table:
 
 ```
 ❯ python tpcdi.py process-files --output-directory ~/dev/tpcdi-output \
@@ -140,7 +159,10 @@ stewartbryson#STEWART_DEV@TPC_DI.DIGEN>select * from STATUS_TYPE;
 stewartbryson#STEWART_DEV@TPC_DI.DIGEN>
 ```
 
-Notice that the second execution used Snowpark's `overwrite=False` feature of skipping already existing files during a put, which can be overridden with the `--overwrite` option. I'll show and explain code samples and describe the more challenging DataFrame transformations in a subsequent article. For now, let's get the rest of the files loaded so we can move on to the dbt models. All DataFrames are saved in `overwrite` mode, so we can run it again without duplicating data:
+Notice that the second execution used Snowpark's `overwrite=False` feature of skipping already existing files during a put, which can be overridden with the `--overwrite` option. 
+I'll show and explain code samples and describe the more challenging DataFrame transformations in a subsequent article. 
+For now, let's get the rest of the files loaded so we can move on to the dbt models. 
+All DataFrames are saved in `overwrite` mode, so we can run it again without duplicating data:
 
 ```
 ❯ python tpcdi.py process-files --output-directory ~/dev/tpcdi-output  
@@ -171,8 +193,11 @@ STATUS_TYPE table created.
 { Truncated }
 ```
 
-Building the Data Warehouse with dbt
-I was having so much fun writing Snowpark Python that I considered writing the transformation pipelines in DataFrames as well. But we wanted the dbt models because they represent so much of what the community is doing, and we wanted realistic workloads. In the Medallion architecture, we typically append raw data in their original format into Bronze, business entities modeled in Silver, and our highly curated facts and dimensions in Gold. I'm loading with an x-small warehouse and 4 threads, with a `DIGen.jar` scaling factor of 10:
+# Building the Data Warehouse with dbt
+I was having so much fun writing Snowpark Python that I considered writing the transformation pipelines in DataFrames as well.
+But we wanted the dbt models because they represent so much of what the community is doing, and we wanted realistic workloads.
+In the Medallion architecture, we typically append raw data in their original format into Bronze, business entities modeled in Silver, and our highly curated facts and dimensions in Gold. 
+I'm loading with an x-small warehouse and 4 threads, with a `DIGen.jar` scaling factor of 10:
 
 ```
 ❯ dbt build
@@ -281,11 +306,13 @@ I was having so much fun writing Snowpark Python that I considered writing the t
 ```
 
 # Future Enhancements
-Although it wasn't my goal, it would be cool to enhance this project so that it could be used to run and measure the benchmark. These are my thoughts on where to take this next:
+Although it wasn't my goal, it would be cool to enhance this project so that it could be used to run and measure the benchmark. 
+These are my thoughts on where to take this next:
 
 1. Complete Batch2 and Batch3 using dbt incremental models, and put the audit queries in as dbt tests.
 2. Refactor tpcdi.py to only upload the files and do that concurrently, then put all the Snowpark transformations into procedures so they can be executed as concurrent tasks.
 3. Maybe take another pass at credential handling, using the config.toml from Snowflake CLI.
 Provide a command-line option --schema so it can be specified during loading, instead of using CURRENT_SCHEMA. In fact, this one is so simple I may knock it out this week.
 
-If you are interested in contributing, jump on board. You don't need my permission, or even incredible skill, clearly. Just open a pull request.
+If you are interested in contributing, jump on board. You don't need my permission, or even incredible skill, clearly. 
+Just open a pull request.
