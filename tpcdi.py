@@ -131,7 +131,7 @@ def process_files(
             datatype: str,
             with_alias:bool = True
     ):
-        new_attribute = new_attribute = get(col(column), lit(f"@{attribute}")).cast(datatype)
+        new_attribute = get(col(column), lit(f"@{attribute}")).cast(datatype)
         if with_alias:
             return new_attribute.alias(attribute)
         else:
