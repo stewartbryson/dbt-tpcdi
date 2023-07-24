@@ -27,7 +27,7 @@ def recreate_stage(
 
 @app.command(help="DROP the stage. Useful when all the data has been successfully loaded.")
 def drop_stage(
-        stage: Annotated[str, typer.Option(help="Name of the stage to recreate.")] = 'tpcdi',
+        stage: Annotated[str, typer.Option(help="Name of the stage to drop.")] = 'tpcdi',
 ):
     session = get_session()
     session.sql(f"drop stage {stage}").collect()
