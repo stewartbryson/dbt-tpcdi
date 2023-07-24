@@ -31,7 +31,7 @@ cd Tools
 I couldn't find any way to execute the provided JAR with a Java version newer than `1.8`. I spent some time trying to rebuild the JAR file using a newer Java version for posterity, but it was a fool's errand.
 I installed [Azul Zulu Java 1.8](https://www.azul.com/downloads/?package=jdk#zulu) and used [jEnv](https://www.jenv.be/) to set a local version, and with that, we can see the help context from the JAR:
 
-```
+```bash
 jenv add /Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home && \
 jenv local 1.8 && \
 java -jar DIGen.jar --help
@@ -51,7 +51,8 @@ The two file formats that proved the most fun and challenging were fixed-width f
 Currently, I've only tested the loader against `Batch1` and the dbt models have not yet been extended to handle additional batches. 
 Also, I haven't yet implemented the Audit portion of the specification, which is somewhat embarrassing as a former co-founder of a data quality company.
 
-```java -jar DIGen.jar -o ~/dev/tpcdi-output -sf 10 && \
+```bash
+java -jar DIGen.jar -o ~/dev/tpcdi-output -sf 10 && \
 ls -lhtr ~/dev/tpcdi-output/Batch1
 
 -rw-r--r--  1 stewartbryson  staff    52B Jul 21 14:30 StatusType_audit.csv
@@ -81,7 +82,7 @@ ls -lhtr ~/dev/tpcdi-output/Batch1
 # The Python Snowpark Loader: tpcdi.py
 I used Conda to build my virtual environment, with all the steps to replicate in the snippet below:
 
-```
+```bash
 conda env create -f environment.yml && \
 conda activate tpcdi && \
 python tpcdi.py --help
@@ -92,7 +93,7 @@ python tpcdi.py --help
 I created the loader using Typer for the CLI interface and Snowpark for uploading files, creating DataFrames from those files -- in some cases doing heavy transformations -- and saving them as tables. 
 Credentials are provided using a credentials.json file in the root directory, and looks like this:
 
-```
+```json
 {
     "account": "myaccount",
     "user": "myuser",
@@ -164,7 +165,7 @@ I'll show and explain code samples and describe the more challenging DataFrame t
 For now, let's get the rest of the files loaded so we can move on to the dbt models. 
 All DataFrames are saved in `overwrite` mode, so we can run it again without duplicating data:
 
-```
+```bash
 ❯ python tpcdi.py process-files --output-directory ~/dev/tpcdi-output  
 
 File Date.txt: UPLOADED
@@ -199,7 +200,7 @@ But we wanted the dbt models because they represent so much of what the communit
 In the Medallion architecture, we typically append raw data in their original format into Bronze, business entities modeled in Silver, and our highly curated facts and dimensions in Gold. 
 I'm loading with an x-small warehouse and 4 threads, with a `DIGen.jar` scaling factor of 10:
 
-```
+```bash
 ❯ dbt build
 03:24:41  Running with dbt=1.5.2
 03:24:41  Registered adapter: snowflake=1.5.2
