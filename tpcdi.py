@@ -125,7 +125,7 @@ def process_files(
                 return get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
     
     # Simplifies the logic for constructing a phone number from multiple fields
-    # Only used twice, so not sure how much it saves
+    # Only used twice, so not sure if it was worth it
     def get_phone_number(
             phone_id:str
     ):

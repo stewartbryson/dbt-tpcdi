@@ -160,9 +160,7 @@ stewartbryson#STEWART_DEV@TPC_DI.DIGEN>select * from STATUS_TYPE;
 stewartbryson#STEWART_DEV@TPC_DI.DIGEN>
 ```
 
-Notice that the second execution used Snowpark's `overwrite=False` feature of skipping already existing files during a put, which can be overridden with the `--overwrite` option. 
-I'll show and explain code samples and describe the more challenging DataFrame transformations in a subsequent article. 
-For now, let's get the rest of the files loaded so we can move on to the dbt models. 
+Notice that the second execution used Snowpark's `overwrite=False` feature of skipping already existing files during a put, which can be overridden with the `--overwrite` option.
 All DataFrames are saved in `overwrite` mode, so we can run it again without duplicating data:
 
 ```bash
