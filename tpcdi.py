@@ -125,7 +125,7 @@ def process_files(
                 return new_element
     
     # Simplifies the logic for constructing a phone number from multiple fields
-    # Only used twice, so not sure if it was worth it
+    # Only used it three times, but I still think it's worth it
     def get_phone_number(
             phone_id:str
     ):
