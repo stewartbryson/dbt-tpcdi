@@ -120,9 +120,9 @@ def process_files(
         ):
             new_element = get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
             if with_alias:
-                return get(xmlget(col(column), lit(element)), lit('$')).cast(datatype).alias(element)
+                return new_element.alias(element)
             else:
-                return get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
+                return new_element
     
     # Simplifies the logic for constructing a phone number from multiple fields
     # Only used twice, so not sure if it was worth it
