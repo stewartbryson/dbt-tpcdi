@@ -124,6 +124,19 @@ def process_files(
             else:
                 return new_element
     
+    # Get an XML attribute
+    def get_xml_attribute(
+            column:str,
+            attribute: str,
+            datatype: str,
+            with_alias:bool = True
+    ):
+        new_attribute = new_attribute = get(col(column), lit(f"@{attribute}")).cast(datatype)
+        if with_alias:
+            return new_attribute.alias(attribute)
+        else:
+            return new_attribute
+    
     # Simplifies the logic for constructing a phone number from multiple fields
     # Only used it three times, but I still think it's worth it
     def get_phone_number(
@@ -251,16 +264,16 @@ def process_files(
                 get_xml_element('phone3', 'C_AREA_CODE', 'STRING', False).alias('phone3_area'),
                 get_xml_element('phone3', 'C_LOCAL', 'STRING', False).alias('phone3_local'),
                 get_xml_element('phone3', 'C_EXT', 'STRING', False).alias('phone3_ext'),
-                get(col('customer'), lit('@C_TIER')).cast('STRING').alias('c_tier'),
+                get_xml_attribute('customer','C_TIER','STRING'),
             ) \
             .select(
                 to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')).alias('action_ts'),
-                get(col('$1'), lit('@ActionType')).cast('STRING').alias('action_type'),
-                get(col('customer'), lit('@C_ID')).cast('NUMBER').alias('c_id'),
-                get(col('customer'), lit('@C_TAX_ID')).cast('STRING').alias('c_tax_id'),
-                get(col('customer'), lit('@C_GNDR')).cast('STRING').alias('c_gndr'),
+                get_xml_attribute('$1','ActionType','STRING'),
+                get_xml_attribute('customer','C_ID','NUMBER'),
+                get_xml_attribute('customer','C_TAX_ID','STRING'),
+                get_xml_attribute('customer','C_GNDR','STRING'),
                 try_cast(col('c_tier'),'NUMBER').alias('c_tier'),
-                get(col('customer'), lit('@C_DOB')).cast('DATE').alias('c_dob'),
+                get_xml_attribute('customer','C_DOB','DATE'),
                 get_xml_element('name','C_L_NAME','STRING'),
                 get_xml_element('name','C_F_NAME','STRING'),
                 get_xml_element('name','C_M_NAME','STRING'),
@@ -277,8 +290,8 @@ def process_files(
                 get_phone_number('3'),
                 get_xml_element('tax_info','C_LCL_TX_ID','STRING'),
                 get_xml_element('tax_info','C_NAT_TX_ID','STRING'),
-                get(col('account'), lit('@CA_ID')).cast('NUMBER').alias('ca_id'),
-                get(col('account'), lit('@CA_TAX_ST')).cast('NUMBER').alias('ca_tax_st'),
+                get_xml_attribute('account','CA_ID','STRING'),
+                get_xml_attribute('account','CA_TAX_ST','NUMBER'),
                 get_xml_element('account','CA_B_ID','NUMBER'),
                 get_xml_element('account','CA_NAME','STRING'),
             )
