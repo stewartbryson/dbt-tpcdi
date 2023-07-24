@@ -41,7 +41,7 @@ def process_files(
     batch: Annotated[int, typer.Option(help="The TPC-DI batch number to process. Currently only supports the default of '1'.")] = 1,
     overwrite: Annotated[bool, typer.Option(help="Overwrite the file even if it exists?")] = False,
     skip_upload: Annotated[bool, typer.Option(help="Skip uploading the files?")] = False,
-    show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table? This was useful during development")] = False,
+    show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table? This was useful during development.")] = False,
 ):
     session = get_session()
     # create the stage if it doesn't exist
@@ -111,6 +111,7 @@ def process_files(
         
         save_df(df, table_name)
 
+    # Simplifies the DataFrame transformations for retrieving XML elements
     def get_xml_element(
             column:str,
             element:str,
@@ -123,6 +124,8 @@ def process_files(
             else:
                 return get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
     
+    # Simplifies the logic for constructing a phone number from multiple fields
+    # Only used twice, so not sure how much it saves
     def get_phone_number(
             phone_id:str
     ):
@@ -136,6 +139,9 @@ def process_files(
             col(f"phone{phone_id}_ext")
         ).alias(f"c_phone_{phone_id}")
     
+    # Start defining and loading the actual tables
+    # con_file_name declaration acts as the comment.
+
     con_file_name = 'Date.txt'
     if file_name in ['all', con_file_name]:
         schema = StructType([
