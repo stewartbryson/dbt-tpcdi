@@ -416,7 +416,6 @@ def process_files(
         df = session.read.schema(schema) \
             .option('field_delimiter', '|') \
             .csv(stage_path) \
-            .withColumn('pts', substring(col("line"), lit(0), lit(15))) \
             .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
             .where(col('rec_type') == 'CMP') \
             .with_column('company_name', substr(col('line'), lit(19), lit(60))) \
@@ -433,8 +432,8 @@ def process_files(
             .withColumn('country', substring(col("line"), lit(324), lit(24))) \
             .withColumn('ceo_name', substring(col("line"), lit(348), lit(46))) \
             .withColumn('description', substring(col("line"), lit(394), lit(150))) \
-            .with_column('pts', to_timestamp(col('pts'), lit("yyyymmdd-hhmiss"))) \
-            .drop(col('line'))
+            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss"))) \
+            .drop(col('line')) \
 
         save_df(df, 'cmp')
 
@@ -442,7 +441,6 @@ def process_files(
         df = session.read.schema(schema) \
             .option('field_delimiter', '|') \
             .csv(stage_path) \
-            .withColumn('pts', substring(col("line"), lit(0), lit(15))) \
             .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
             .where(col('rec_type') == 'SEC') \
             .withColumn('symbol', substring(col("line"), lit(19), lit(15))) \
@@ -455,7 +453,7 @@ def process_files(
             .withColumn('first_exchange_date', substring(col("line"), lit(141), lit(8))) \
             .withColumn('dividend', substring(col("line"), lit(149), lit(12))) \
             .withColumn('co_name_or_cik', substring(col("line"), lit(161), lit(60))) \
-            .withColumn("pts", to_timestamp(col("pts"), lit("yyyymmdd-hhmiss"))) \
+            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss"))) \
             .drop(col('line'))
 
         save_df(df, 'sec')
@@ -464,7 +462,6 @@ def process_files(
         df = session.read.schema(schema) \
             .option('field_delimiter', '|') \
             .csv(stage_path) \
-            .withColumn('pts', substring(col("line"), lit(0), lit(15))) \
             .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
             .where(col('rec_type') == 'FIN') \
             .withColumn('year', substring(col("line"), lit(19), lit(4))) \
@@ -482,7 +479,7 @@ def process_files(
             .withColumn('sh_out', substring(col("line"), lit(161), lit(13))) \
             .withColumn('diluted_sh_out', substring(col("line"), lit(174), lit(13))) \
             .withColumn('co_name_or_cik', substring(col("line"), lit(187), lit(60))) \
-            .withColumn("pts", to_timestamp(col("pts"), lit("yyyymmdd-hhmiss"))) \
+            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss"))) \
             .drop(col("line"))
 
         save_df(df, 'fin')
