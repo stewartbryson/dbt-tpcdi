@@ -12,9 +12,11 @@ def get_session():
     with open("credentials.json") as jsonfile:
         credentials_dict = json.load(jsonfile)
 
+    # build the session
     session = Session.builder.configs(credentials_dict).create()
     print(f"Session: {session}")
 
+    # and return it
     return session
 
 @app.command(help="CREATE or REPLACE the stage. Mostly useful while developing this utility.")
@@ -44,6 +46,7 @@ def process_files(
     show: Annotated[bool, typer.Option(help="Show the DataFrame instead of saving it as a table? This was useful during development.")] = False,
 ):
     session = get_session()
+
     # create the stage if it doesn't exist
     session.sql(f"create stage if not exists {stage} directory = (enable = true)").collect()
 
@@ -124,7 +127,7 @@ def process_files(
             else:
                 return new_element
     
-    # Get an XML attribute
+    # Simplifies the DataFrame transformations for retrieving XML attributes
     def get_xml_attribute(
             column:str,
             attribute: str,
@@ -152,8 +155,8 @@ def process_files(
             col(f"phone{phone_id}_ext")
         ).alias(f"c_phone_{phone_id}")
     
-    # Start defining and loading the actual tables
-    # con_file_name declaration acts as the comment.
+    ### Start defining and loading the actual tables
+    ### Variable 'con_file_name' declaration acts as the comment.
 
     con_file_name = 'Date.txt'
     if file_name in ['all', con_file_name]:
