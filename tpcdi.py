@@ -100,7 +100,8 @@ def process_files(
         # return the delimiter
         return delimiter
         
-    # method for creating a table from a CSV
+    # method for creating a table from a simple CSV
+    # works for either comma or pipe delimited, detecting that automatically by suffix
     def load_csv(
             schema: StructType,
             file_name: str,
