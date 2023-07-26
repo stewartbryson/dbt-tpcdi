@@ -64,8 +64,9 @@ def process_files(
         if show:
             df.show()
         else:
-            df.write.mode("overwrite") \
-            .save_as_table(table_name)
+            df.write \
+                .mode("overwrite") \
+                .save_as_table(table_name)
 
             print(f"{table_name.upper()} table created.")
 
@@ -108,7 +109,9 @@ def process_files(
         stage_path = get_stage_path(stage, file_name)
         delimiter=upload_files(file_name, stage_path)
         
-        df = session.read.schema(schema) \
+        df = session \
+            .read \
+            .schema(schema) \
             .option("field_delimiter", delimiter) \
             .csv(stage_path)
         
@@ -413,7 +416,9 @@ def process_files(
         upload_files(con_file_name, stage_path)
 
         # CMP record types
-        df = session.read.schema(schema) \
+        df = session \
+            .read \
+            .schema(schema) \
             .option('field_delimiter', '|') \
             .csv(stage_path) \
             .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
@@ -438,7 +443,9 @@ def process_files(
         save_df(df, 'cmp')
 
         # SEC record types
-        df = session.read.schema(schema) \
+        df = session \
+            .read \
+            .schema(schema) \
             .option('field_delimiter', '|') \
             .csv(stage_path) \
             .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
@@ -459,7 +466,9 @@ def process_files(
         save_df(df, 'sec')
 
         # FIN record types
-        df = session.read.schema(schema) \
+        df = session \
+            .read \
+            .schema(schema) \
             .option('field_delimiter', '|') \
             .csv(stage_path) \
             .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
