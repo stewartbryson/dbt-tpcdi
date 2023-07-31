@@ -66,7 +66,7 @@ def process_files(
         else:
             df.write \
                 .mode("overwrite") \
-                .save_as_table(table_name)
+                .save_as_table(table_name) \
 
             print(f"{table_name.upper()} table created.")
 
@@ -416,13 +416,20 @@ def process_files(
         stage_path = get_stage_path(stage, con_file_name)
         upload_files(con_file_name, stage_path)
 
-        # CMP record types
+        # generic dataframe for all record types
+        # create a temporary table
         df = session \
             .read \
             .schema(schema) \
             .option('field_delimiter', '|') \
             .csv(stage_path) \
             .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
+            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss"))) \
+            .write.mode("overwrite").save_as_table("finwire", table_type="temporary")
+
+        # CMP record types
+        df = session \
+            .table('finwire') \
             .where(col('rec_type') == 'CMP') \
             .with_column('company_name', substr(col('line'), lit(19), lit(60))) \
             .withColumn('cik', substring(col("line"), lit(79), lit(10))) \
@@ -438,18 +445,13 @@ def process_files(
             .withColumn('country', substring(col("line"), lit(324), lit(24))) \
             .withColumn('ceo_name', substring(col("line"), lit(348), lit(46))) \
             .withColumn('description', substring(col("line"), lit(394), lit(150))) \
-            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss"))) \
             .drop(col('line')) \
 
         save_df(df, 'cmp')
 
         # SEC record types
         df = session \
-            .read \
-            .schema(schema) \
-            .option('field_delimiter', '|') \
-            .csv(stage_path) \
-            .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
+            .table('finwire') \
             .where(col('rec_type') == 'SEC') \
             .withColumn('symbol', substring(col("line"), lit(19), lit(15))) \
             .withColumn('issue_type', substring(col("line"), lit(34), lit(6))) \
@@ -461,18 +463,13 @@ def process_files(
             .withColumn('first_exchange_date', substring(col("line"), lit(141), lit(8))) \
             .withColumn('dividend', substring(col("line"), lit(149), lit(12))) \
             .withColumn('co_name_or_cik', substring(col("line"), lit(161), lit(60))) \
-            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss"))) \
-            .drop(col('line'))
+            .drop(col('line')) \
 
         save_df(df, 'sec')
 
         # FIN record types
         df = session \
-            .read \
-            .schema(schema) \
-            .option('field_delimiter', '|') \
-            .csv(stage_path) \
-            .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
+            .table('finwire') \
             .where(col('rec_type') == 'FIN') \
             .withColumn('year', substring(col("line"), lit(19), lit(4))) \
             .withColumn('quarter', substring(col("line"), lit(23), lit(1))) \
@@ -489,8 +486,7 @@ def process_files(
             .withColumn('sh_out', substring(col("line"), lit(161), lit(13))) \
             .withColumn('diluted_sh_out', substring(col("line"), lit(174), lit(13))) \
             .withColumn('co_name_or_cik', substring(col("line"), lit(187), lit(60))) \
-            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss"))) \
-            .drop(col("line"))
+            .drop(col("line")) \
 
         save_df(df, 'fin')
 
