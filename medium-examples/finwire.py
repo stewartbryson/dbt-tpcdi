@@ -36,6 +36,7 @@ schema = StructType([
 
 # generic dataframe for all record types
 # create a temporary table
+# The delimiter '|' seems safer
 df = session \
     .read \
     .schema(schema) \
