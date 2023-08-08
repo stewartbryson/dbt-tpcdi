@@ -48,7 +48,11 @@ def process_files(
     session = get_session()
 
     # create the stage if it doesn't exist
-    session.sql(f"create stage if not exists {stage} directory = (enable = true)").collect()
+    (
+        session
+        .sql(f"create stage if not exists {stage} directory = (enable = true)")
+        .collect()
+    )
 
     def get_stage_path(
             stage:str,
@@ -64,9 +68,11 @@ def process_files(
         if show:
             df.show()
         else:
-            df.write \
-                .mode("overwrite") \
-                .save_as_table(table_name) \
+            (
+                df.write
+                .mode("overwrite")
+                .save_as_table(table_name)
+            )
 
             print(f"{table_name.upper()} table created.")
 
@@ -93,7 +99,17 @@ def process_files(
 
             # put the file(s) in the stage
             if not skip_upload:
-                put_result = session.file.put(str(file), stage_path, overwrite=overwrite, parallel=4, auto_compress=True )
+                put_result = (
+                        session
+                        .file
+                        .put(
+                            str(file), 
+                            stage_path, 
+                            overwrite=overwrite, 
+                            parallel=4, 
+                            auto_compress=True 
+                        )
+                )
                 for result in put_result:
                     print(f"File {result.source}: {result.status}")
         
@@ -110,11 +126,13 @@ def process_files(
         stage_path = get_stage_path(stage, file_name)
         delimiter=upload_files(file_name, stage_path)
         
-        df = session \
-            .read \
-            .schema(schema) \
-            .option("field_delimiter", delimiter) \
+        df = (
+            session
+            .read
+            .schema(schema)
+            .option("field_delimiter", delimiter)
             .csv(stage_path)
+        )
         
         save_df(df, table_name)
 
@@ -124,12 +142,12 @@ def process_files(
             element:str,
             datatype:str,
             with_alias:bool = True
-        ):
-            new_element = get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
-            if with_alias:
-                return new_element.alias(element)
-            else:
-                return new_element
+    ):
+        new_element = get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
+        if with_alias:
+            return new_element.alias(element)
+        else:
+            return new_element
     
     # Simplifies the DataFrame transformations for retrieving XML attributes
     def get_xml_attribute(
@@ -241,9 +259,11 @@ def process_files(
         upload_files(con_file_name, get_stage_path(stage, con_file_name))
 
         # this might get hairy
-        df = session.read \
-            .option('STRIP_OUTER_ELEMENT', True) \
-            .xml(get_stage_path(stage, con_file_name)) \
+        df = (
+            session
+            .read
+            .option('STRIP_OUTER_ELEMENT', True)
+            .xml(get_stage_path(stage, con_file_name))
             .select(
                 col('$1'),
                 xmlget(col('$1'), lit('Customer'), 0).alias('customer'),
@@ -255,7 +275,7 @@ def process_files(
                 xmlget(col('contact_info'), lit('C_PHONE_3')).alias('phone3'),
                 xmlget(col('customer'), lit('TaxInfo'), 0).alias('tax_info'),
                 xmlget(col('customer'), lit('Account'), 0).alias('account'),
-            ) \
+            )
             .select(
                 col('*'),
                 get(col('$1'), lit('@ActionTS')).cast('STRING').alias('action_ts'),
@@ -272,7 +292,7 @@ def process_files(
                 get_xml_element('phone3', 'C_LOCAL', 'STRING', False).alias('phone3_local'),
                 get_xml_element('phone3', 'C_EXT', 'STRING', False).alias('phone3_ext'),
                 get_xml_attribute('customer','C_TIER','STRING'),
-            ) \
+            )
             .select(
                 to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')).alias('action_ts'),
                 get_xml_attribute('$1','ActionType','STRING'),
@@ -302,6 +322,7 @@ def process_files(
                 get_xml_element('account','CA_B_ID','NUMBER'),
                 get_xml_element('account','CA_NAME','STRING'),
             )
+        )
         
         save_df(df, 'customer_mgmt')
 
@@ -418,75 +439,83 @@ def process_files(
 
         # generic dataframe for all record types
         # create a temporary table
-        df = session \
-            .read \
-            .schema(schema) \
-            .option('field_delimiter', '|') \
-            .csv(stage_path) \
-            .with_column('rec_type', substring(col("line"), lit(16), lit(3))) \
-            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss"))) \
+        df = (
+            session
+            .read
+            .schema(schema)
+            .option('field_delimiter', '|')
+            .csv(stage_path)
+            .with_column('rec_type', substring(col("line"), lit(16), lit(3)))
+            .with_column('pts', to_timestamp(substring(col("line"), lit(0), lit(15)), lit("yyyymmdd-hhmiss")))
             .write.mode("overwrite").save_as_table("finwire", table_type="temporary")
+        )
 
         # CMP record types
-        df = session \
-            .table('finwire') \
-            .where(col('rec_type') == 'CMP') \
-            .with_column('company_name', substr(col('line'), lit(19), lit(60))) \
-            .withColumn('cik', substring(col("line"), lit(79), lit(10))) \
-            .withColumn('status', substring(col("line"), lit(89), lit(4))) \
-            .withColumn('industry_id', substring(col("line"), lit(93), lit(2))) \
-            .withColumn('sp_rating', substring(col("line"), lit(95), lit(4))) \
-            .withColumn('founding_date', substring(col("line"), lit(99), lit(8))) \
-            .withColumn('address_line1', substring(col("line"), lit(107), lit(80))) \
-            .withColumn('address_line2', substring(col("line"), lit(187), lit(80))) \
-            .withColumn('postal_code', substring(col("line"), lit(267), lit(12))) \
-            .withColumn('city', substring(col("line"), lit(279), lit(25))) \
-            .withColumn('state_province', substring(col("line"), lit(304), lit(20))) \
-            .withColumn('country', substring(col("line"), lit(324), lit(24))) \
-            .withColumn('ceo_name', substring(col("line"), lit(348), lit(46))) \
-            .withColumn('description', substring(col("line"), lit(394), lit(150))) \
-            .drop(col("line"), col("rec_type")) \
+        df = (
+            session
+            .table('finwire')
+            .where(col('rec_type') == 'CMP')
+            .with_column('company_name', substr(col('line'), lit(19), lit(60)))
+            .withColumn('cik', substring(col("line"), lit(79), lit(10)))
+            .withColumn('status', substring(col("line"), lit(89), lit(4)))
+            .withColumn('industry_id', substring(col("line"), lit(93), lit(2)))
+            .withColumn('sp_rating', substring(col("line"), lit(95), lit(4)))
+            .withColumn('founding_date', substring(col("line"), lit(99), lit(8)))
+            .withColumn('address_line1', substring(col("line"), lit(107), lit(80)))
+            .withColumn('address_line2', substring(col("line"), lit(187), lit(80)))
+            .withColumn('postal_code', substring(col("line"), lit(267), lit(12)))
+            .withColumn('city', substring(col("line"), lit(279), lit(25)))
+            .withColumn('state_province', substring(col("line"), lit(304), lit(20)))
+            .withColumn('country', substring(col("line"), lit(324), lit(24)))
+            .withColumn('ceo_name', substring(col("line"), lit(348), lit(46)))
+            .withColumn('description', substring(col("line"), lit(394), lit(150)))
+            .drop(col("line"), col("rec_type"))
+        )
 
         save_df(df, 'cmp')
 
         # SEC record types
-        df = session \
-            .table('finwire') \
-            .where(col('rec_type') == 'SEC') \
-            .withColumn('symbol', substring(col("line"), lit(19), lit(15))) \
-            .withColumn('issue_type', substring(col("line"), lit(34), lit(6))) \
-            .withColumn('status', substring(col("line"), lit(40), lit(4))) \
-            .withColumn('name', substring(col("line"), lit(44), lit(70))) \
-            .withColumn('ex_id', substring(col("line"), lit(114), lit(6))) \
-            .withColumn('sh_out', substring(col("line"), lit(120), lit(13))) \
-            .withColumn('first_trade_date', substring(col("line"), lit(133), lit(8))) \
-            .withColumn('first_exchange_date', substring(col("line"), lit(141), lit(8))) \
-            .withColumn('dividend', substring(col("line"), lit(149), lit(12))) \
-            .withColumn('co_name_or_cik', substring(col("line"), lit(161), lit(60))) \
-            .drop(col("line"), col("rec_type")) \
+        df = (
+            session
+            .table('finwire')
+            .where(col('rec_type') == 'SEC')
+            .withColumn('symbol', substring(col("line"), lit(19), lit(15)))
+            .withColumn('issue_type', substring(col("line"), lit(34), lit(6)))
+            .withColumn('status', substring(col("line"), lit(40), lit(4)))
+            .withColumn('name', substring(col("line"), lit(44), lit(70)))
+            .withColumn('ex_id', substring(col("line"), lit(114), lit(6)))
+            .withColumn('sh_out', substring(col("line"), lit(120), lit(13)))
+            .withColumn('first_trade_date', substring(col("line"), lit(133), lit(8)))
+            .withColumn('first_exchange_date', substring(col("line"), lit(141), lit(8)))
+            .withColumn('dividend', substring(col("line"), lit(149), lit(12)))
+            .withColumn('co_name_or_cik', substring(col("line"), lit(161), lit(60)))
+            .drop(col("line"), col("rec_type"))
+        )
 
         save_df(df, 'sec')
 
         # FIN record types
-        df = session \
-            .table('finwire') \
-            .where(col('rec_type') == 'FIN') \
-            .withColumn('year', substring(col("line"), lit(19), lit(4))) \
-            .withColumn('quarter', substring(col("line"), lit(23), lit(1))) \
-            .withColumn('quarter_start_date', substring(col("line"), lit(24), lit(8))) \
-            .withColumn('posting_date', substring(col("line"), lit(32), lit(8))) \
-            .withColumn('revenue', substring(col("line"), lit(40), lit(17))) \
-            .withColumn('earnings', substring(col("line"), lit(57), lit(17))) \
-            .withColumn('eps', substring(col("line"), lit(74), lit(12))) \
-            .withColumn('diluted_eps', substring(col("line"), lit(86), lit(12))) \
-            .withColumn('margin', substring(col("line"), lit(98), lit(12))) \
-            .withColumn('inventory', substring(col("line"), lit(110), lit(17))) \
-            .withColumn('assets', substring(col("line"), lit(127), lit(17))) \
-            .withColumn('liabilities', substring(col("line"), lit(144), lit(17))) \
-            .withColumn('sh_out', substring(col("line"), lit(161), lit(13))) \
-            .withColumn('diluted_sh_out', substring(col("line"), lit(174), lit(13))) \
-            .withColumn('co_name_or_cik', substring(col("line"), lit(187), lit(60))) \
-            .drop(col("line"), col("rec_type")) \
+        df = (
+            session
+            .table('finwire')
+            .where(col('rec_type') == 'FIN')
+            .withColumn('year', substring(col("line"), lit(19), lit(4)))
+            .withColumn('quarter', substring(col("line"), lit(23), lit(1)))
+            .withColumn('quarter_start_date', substring(col("line"), lit(24), lit(8)))
+            .withColumn('posting_date', substring(col("line"), lit(32), lit(8)))
+            .withColumn('revenue', substring(col("line"), lit(40), lit(17)))
+            .withColumn('earnings', substring(col("line"), lit(57), lit(17)))
+            .withColumn('eps', substring(col("line"), lit(74), lit(12)))
+            .withColumn('diluted_eps', substring(col("line"), lit(86), lit(12)))
+            .withColumn('margin', substring(col("line"), lit(98), lit(12)))
+            .withColumn('inventory', substring(col("line"), lit(110), lit(17)))
+            .withColumn('assets', substring(col("line"), lit(127), lit(17)))
+            .withColumn('liabilities', substring(col("line"), lit(144), lit(17)))
+            .withColumn('sh_out', substring(col("line"), lit(161), lit(13)))
+            .withColumn('diluted_sh_out', substring(col("line"), lit(174), lit(13)))
+            .withColumn('co_name_or_cik', substring(col("line"), lit(187), lit(60)))
+            .drop(col("line"), col("rec_type"))
+        )
             
 
         save_df(df, 'fin')
