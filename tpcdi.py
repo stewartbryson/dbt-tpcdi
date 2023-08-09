@@ -278,10 +278,11 @@ def process_files(
                 xmlget(col('customer'), lit('Account'), 0).alias('account'),
                 get(col('$1'), lit('@ActionTS')).cast('STRING').alias('action_ts'),
                 get_xml_attribute('customer','C_TIER','STRING'),
+                get_xml_attribute('$1','ActionType','STRING'),
             )
             .select(
                 to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')).alias('action_ts'),
-                get_xml_attribute('$1','ActionType','STRING'),
+                col('ActionType').alias('ACTION_TYPE'),
                 get_xml_attribute('customer','C_ID','NUMBER'),
                 get_xml_attribute('customer','C_TAX_ID','STRING'),
                 get_xml_attribute('customer','C_GNDR','STRING'),
