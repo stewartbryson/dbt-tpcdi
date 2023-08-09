@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: reference
-    database: tpc_di
+    database: tpcdi
     schema: digen
     loader: snowpark
 
