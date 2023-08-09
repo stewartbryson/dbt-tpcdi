@@ -162,20 +162,21 @@ def process_files(
         else:
             return new_attribute
     
-    # Simplifies the logic for constructing a phone number from multiple fields
-    # Only used it three times, but I still think it's worth it
+    # Simplifies the logic for constructing a phone number from multiple nested fields
     def get_phone_number(
-            phone_id:str
+            phone_id:str,
+            separator:str = '-'
     ):
         return concat(
-            col(f"phone{phone_id}_ctry"),
-            when(col(f"phone{phone_id}_ctry") == '', '').otherwise("-"),
-            col(f"phone{phone_id}_area"),
-            when(col(f"phone{phone_id}_area") == '', '').otherwise("-"),
-            col(f"phone{phone_id}_local"),
-            when(col(f"phone{phone_id}_ext") == '', '').otherwise(" ext: "),
-            col(f"phone{phone_id}_ext")
+            get_xml_element(f"phone{phone_id}", 'C_CTRY_CODE', 'STRING', False),
+            when(get_xml_element(f"phone{phone_id}", 'C_CTRY_CODE', 'STRING', False) == '', '').otherwise(separator),
+            get_xml_element(f"phone{phone_id}", 'C_AREA_CODE', 'STRING', False),
+            when(get_xml_element(f"phone{phone_id}", 'C_AREA_CODE', 'STRING', False) == '', '').otherwise(separator),
+            get_xml_element(f"phone{phone_id}", 'C_LOCAL', 'STRING', False),
+            when(get_xml_element(f"phone{phone_id}", 'C_EXT', 'STRING', False) == '', '').otherwise(" ext: "),
+            get_xml_element(f"phone{phone_id}", 'C_EXT', 'STRING', False)
         ).alias(f"c_phone_{phone_id}")
+    
     
     ### Start defining and loading the actual tables
     ### Variable 'con_file_name' declaration acts as the comment.
@@ -275,22 +276,7 @@ def process_files(
                 xmlget(col('contact_info'), lit('C_PHONE_3')).alias('phone3'),
                 xmlget(col('customer'), lit('TaxInfo'), 0).alias('tax_info'),
                 xmlget(col('customer'), lit('Account'), 0).alias('account'),
-            )
-            .select(
-                col('*'),
                 get(col('$1'), lit('@ActionTS')).cast('STRING').alias('action_ts'),
-                get_xml_element('phone1', 'C_CTRY_CODE', 'STRING', False).alias('phone1_ctry'),
-                get_xml_element('phone1', 'C_AREA_CODE', 'STRING', False).alias('phone1_area'),
-                get_xml_element('phone1', 'C_LOCAL', 'STRING', False).alias('phone1_local'),
-                get_xml_element('phone1', 'C_EXT', 'STRING', False).alias('phone1_ext'),
-                get_xml_element('phone2', 'C_CTRY_CODE', 'STRING', False).alias('phone2_ctry'),
-                get_xml_element('phone2', 'C_AREA_CODE', 'STRING', False).alias('phone2_area'),
-                get_xml_element('phone2', 'C_LOCAL', 'STRING', False).alias('phone2_local'),
-                get_xml_element('phone2', 'C_EXT', 'STRING', False).alias('phone2_ext'),
-                get_xml_element('phone3', 'C_CTRY_CODE', 'STRING', False).alias('phone3_ctry'),
-                get_xml_element('phone3', 'C_AREA_CODE', 'STRING', False).alias('phone3_area'),
-                get_xml_element('phone3', 'C_LOCAL', 'STRING', False).alias('phone3_local'),
-                get_xml_element('phone3', 'C_EXT', 'STRING', False).alias('phone3_ext'),
                 get_xml_attribute('customer','C_TIER','STRING'),
             )
             .select(
