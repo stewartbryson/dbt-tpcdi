@@ -263,10 +263,10 @@ def process_files(
         df = (
             session
             .read
-            .option('STRIP_OUTER_ELEMENT', True)
+            .option('STRIP_OUTER_ELEMENT', True) # Strips the TPCDI:Actions element
             .xml(get_stage_path(stage, con_file_name))
             .select(
-                col('$1'),
+                # flatten out all of the nested elements
                 xmlget(col('$1'), lit('Customer'), 0).alias('customer'),
                 xmlget(col('customer'), lit('Name'), 0).alias('name'),
                 xmlget(col('customer'), lit('Address'), 0).alias('address'),
@@ -276,17 +276,17 @@ def process_files(
                 xmlget(col('contact_info'), lit('C_PHONE_3')).alias('phone3'),
                 xmlget(col('customer'), lit('TaxInfo'), 0).alias('tax_info'),
                 xmlget(col('customer'), lit('Account'), 0).alias('account'),
-                get(col('$1'), lit('@ActionTS')).cast('STRING').alias('action_ts'),
-                get_xml_attribute('customer','C_TIER','STRING'),
+                # get the Action attributes
                 get_xml_attribute('$1','ActionType','STRING'),
+                get_xml_attribute('$1','ActionTS','STRING'),
             )
             .select(
-                to_timestamp(col('action_ts'), lit('yyyy-mm-ddThh:mi:ss')).alias('action_ts'),
+                to_timestamp(col('ActionTs'), lit('yyyy-mm-ddThh:mi:ss')).alias('action_ts'),
                 col('ActionType').alias('ACTION_TYPE'),
                 get_xml_attribute('customer','C_ID','NUMBER'),
                 get_xml_attribute('customer','C_TAX_ID','STRING'),
                 get_xml_attribute('customer','C_GNDR','STRING'),
-                try_cast(col('c_tier'),'NUMBER').alias('c_tier'),
+                try_cast(get_xml_attribute('customer','C_TIER','STRING', False),'NUMBER').alias('c_tier'),
                 get_xml_attribute('customer','C_DOB','DATE'),
                 get_xml_element('name','C_L_NAME','STRING'),
                 get_xml_element('name','C_F_NAME','STRING'),
