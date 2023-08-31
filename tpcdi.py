@@ -144,10 +144,10 @@ def process_files(
             with_alias:bool = True
     ):
         new_element = get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
-        if with_alias:
-            return new_element.alias(element)
-        else:
-            return new_element
+        # alias needs to be optional
+        return (
+            new_element.alias(element) if with_alias else new_element
+        )
     
     # Simplifies the DataFrame transformations for retrieving XML attributes
     def get_xml_attribute(
@@ -157,10 +157,10 @@ def process_files(
             with_alias:bool = True
     ):
         new_attribute = get(col(column), lit(f"@{attribute}")).cast(datatype)
-        if with_alias:
-            return new_attribute.alias(attribute)
-        else:
-            return new_attribute
+        # alias needs to be optional
+        return (
+            new_attribute.alias(attribute) if with_alias else new_attribute
+        )
     
     # Simplifies the logic for constructing a phone number from multiple nested fields
     def get_phone_number(
@@ -304,7 +304,7 @@ def process_files(
                 # Get Contact Info elements
                 get_xml_element('contact_info','C_PRIM_EMAIL','STRING'),
                 get_xml_element('contact_info','C_ALT_EMAIL','STRING'),
-                # Contruct a phone number from multi-nested elements
+                # Contruct phone numbers from multi-nested elements
                 get_phone_number('1'),
                 get_phone_number('2'),
                 get_phone_number('3'),
