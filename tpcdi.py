@@ -144,10 +144,10 @@ def process_files(
             with_alias:bool = True
     ):
         new_element = get(xmlget(col(column), lit(element)), lit('$')).cast(datatype)
-        if with_alias:
-            return new_element.alias(element)
-        else:
-            return new_element
+        # alias needs to be optional
+        return (
+            new_element.alias(element) if with_alias else new_element
+        )
     
     # Simplifies the DataFrame transformations for retrieving XML attributes
     def get_xml_attribute(
@@ -157,10 +157,10 @@ def process_files(
             with_alias:bool = True
     ):
         new_attribute = get(col(column), lit(f"@{attribute}")).cast(datatype)
-        if with_alias:
-            return new_attribute.alias(attribute)
-        else:
-            return new_attribute
+        # alias needs to be optional
+        return (
+            new_attribute.alias(attribute) if with_alias else new_attribute
+        )
     
     # Simplifies the logic for constructing a phone number from multiple nested fields
     def get_phone_number(
@@ -304,7 +304,7 @@ def process_files(
                 # Get Contact Info elements
                 get_xml_element('contact_info','C_PRIM_EMAIL','STRING'),
                 get_xml_element('contact_info','C_ALT_EMAIL','STRING'),
-                # Contruct a phone number from multi-nested elements
+                # Contruct phone numbers from multi-nested elements
                 get_phone_number('1'),
                 get_phone_number('2'),
                 get_phone_number('3'),
@@ -456,7 +456,17 @@ def process_files(
             .withColumn('status', substring(col("line"), lit(89), lit(4)))
             .withColumn('industry_id', substring(col("line"), lit(93), lit(2)))
             .withColumn('sp_rating', substring(col("line"), lit(95), lit(4)))
-            .withColumn('founding_date', substring(col("line"), lit(99), lit(8)))
+            .withColumn(
+                'founding_date',
+                try_cast(
+                    trim(
+                        substring(
+                            col("line"), lit(99), lit(8)
+                        )
+                    ),
+                    'DATE'
+                )
+            )
             .withColumn('address_line1', substring(col("line"), lit(107), lit(80)))
             .withColumn('address_line2', substring(col("line"), lit(187), lit(80)))
             .withColumn('postal_code', substring(col("line"), lit(267), lit(12)))
