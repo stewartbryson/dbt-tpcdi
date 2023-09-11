@@ -456,7 +456,17 @@ def process_files(
             .withColumn('status', substring(col("line"), lit(89), lit(4)))
             .withColumn('industry_id', substring(col("line"), lit(93), lit(2)))
             .withColumn('sp_rating', substring(col("line"), lit(95), lit(4)))
-            .withColumn('founding_date', substring(col("line"), lit(99), lit(8)))
+            .withColumn(
+                'founding_date',
+                try_cast(
+                    trim(
+                        substring(
+                            col("line"), lit(99), lit(8)
+                        )
+                    ),
+                    'DATE'
+                )
+            )
             .withColumn('address_line1', substring(col("line"), lit(107), lit(80)))
             .withColumn('address_line2', substring(col("line"), lit(187), lit(80)))
             .withColumn('postal_code', substring(col("line"), lit(267), lit(12)))
