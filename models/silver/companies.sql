@@ -37,6 +37,6 @@ select
         ) THEN TRUE
         ELSE FALSE
     END as IS_CURRENT
-from {{ ref("finwire_companies") }} cmp
-join {{ ref("reference_status_types") }} st on cmp.status = st.st_id
-join {{ ref("reference_industries") }} ind on cmp.industry_id = ind.in_id
+from {{ ref("finwire_company") }} cmp
+join {{ ref("reference_status_type") }} st on cmp.status = st.st_id
+join {{ ref("reference_industry") }} ind on cmp.industry_id = ind.in_id

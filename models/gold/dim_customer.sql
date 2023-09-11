@@ -4,7 +4,7 @@ with s1 as (
            p.credit_rating,
            p.net_worth
     FROM {{ ref('customers') }} c
-    left join {{ ref('syndicated_prospects') }} p
+    left join {{ ref('syndicated_prospect') }} p
     using (first_name, last_name, postal_code, address_line1, address_line2)
 ),
 s2 as (

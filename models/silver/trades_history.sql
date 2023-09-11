@@ -47,13 +47,13 @@ join
 on
     t_id = th_t_id
 join
-    {{ ref('reference_trade_types') }} 
+    {{ ref('reference_trade_type') }} 
 on
     t_tt_id = tt_id
 join
-    {{ ref('reference_status_types') }} ts
+    {{ ref('reference_status_type') }} ts
 on
     t_st_id = ts.st_id
 join
-    {{ ref('reference_status_types') }} us
+    {{ ref('reference_status_type') }} us
 on th_st_id = us.st_id
