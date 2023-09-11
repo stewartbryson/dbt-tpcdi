@@ -17,7 +17,7 @@ with s1 as (
         coalesce(c1.name,c2.name) company_name,
         coalesce(c1.company_id, c2.company_id) company_id,
         pts as effective_timestamp
-    from {{ ref('finwire_financials') }} s 
+    from {{ ref('finwire_financial') }} s 
     left join {{ ref('companies') }} c1
     on s.cik = c1.company_id
     and pts between c1.effective_timestamp and c1.end_timestamp
