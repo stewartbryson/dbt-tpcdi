@@ -35,13 +35,13 @@ select
     action_ts as effective_timestamp,
     ifnull(
         timestampadd(
-        'millisecond',
-        -1,
-        lag(action_ts) over (
-            partition by c_id
-            order by
-            action_ts desc
-        )
+            'millisecond',
+            -1,
+            lag(action_ts) over (
+                partition by c_id
+                order by
+                action_ts desc
+            )
         ),
         to_timestamp('9999-12-31 23:59:59.999')
     ) as end_timestamp,

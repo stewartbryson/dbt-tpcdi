@@ -17,13 +17,13 @@ select
     pts as effective_timestamp,
     ifnull(
         timestampadd(
-        'millisecond',
-        -1,
-        lag(pts) over (
-            partition by company_id
-            order by
-            pts desc
-        )
+            'millisecond',
+            -1,
+            lag(pts) over (
+                partition by company_id
+                order by
+                pts desc
+            )
         ),
         to_timestamp('9999-12-31 23:59:59.999')
     ) as end_timestamp,

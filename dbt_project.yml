@@ -41,4 +41,4 @@ models:
       +materialized: table
     work:
       +schema: work
-      +materialized: table
+      +materialized: ephemeral
