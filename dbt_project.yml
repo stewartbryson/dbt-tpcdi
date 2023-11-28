@@ -32,13 +32,19 @@ models:
       +materialized: view
     bronze:
       +schema: bronze
-      +materialized: table
+      +materialized: dynamic_table
+      +snowflake_warehouse: tpcdi_large
+      +target_lag: downstream
     silver:
       +schema: silver
-      +materialized: table
+      +materialized: dynamic_table
+      +snowflake_warehouse: tpcdi_large
+      +target_lag: '10 minutes'
     gold:
       +schema: gold
-      +materialized: table
+      +materialized: dynamic_table
+      +snowflake_warehouse: tpcdi_large
+      +target_lag: '20 minutes'
     work:
       +schema: work
       +materialized: ephemeral

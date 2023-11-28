@@ -14,7 +14,7 @@ def get_session():
 
     # build the session
     session = Session.builder.configs(credentials_dict).create()
-    print(f"Session: {session}")
+    #print(f"Session: {session}")
 
     # and return it
     return session
@@ -34,6 +34,14 @@ def drop_stage(
     session = get_session()
     session.sql(f"drop stage {stage}").collect()
     print(f"Stage {stage} dropped.")
+
+@app.command(help="DROP a schema. Useful for cleaning up after a demo.")
+def drop_schema(
+        schema: Annotated[str, typer.Option(help="Name of the schema to drop.")],
+):
+    session = get_session()
+    session.sql(f"drop schema if exists {schema}").collect()
+    print(f"Schema {schema} dropped.")
 
 @app.command(help="Upload a file or files into the stage and build the dependent tables.")
 def process_files(
