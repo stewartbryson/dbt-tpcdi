@@ -19,6 +19,9 @@ Secondly, I just couldn't stand for having the `DimTrade` table be "both a dimen
 This decision was made during an era when storage and compute were constrained, so in my design, I created both `DIM_TRADE` and `FACT_TRADE` tables.
 Finally, I used a Medallion Lakehouse Architecture with Bronze, Silver, and Gold zones, with the logical model above materialized in the Gold zone.
 
+# Demo Notebook
+I've included a [demo Jupyter notebook](demo.ipynb) that walks through a subset of the instructions below. This notebook pairs with a presentation I give that focuses more on how Snowpark Python was used in the CLI, and also the motivation for using Dynamic Tables with dbt. But it may still be helpful.
+
 # Using DIGen.jar to Generate Source Files
 The Java program to generate the source files is downloaded by [filling out a form on the TPC-DI website](https://www.tpc.org/TPC_Documents_Current_Versions/download_programs/tools-download-request5.asp?bm_type=TPC-DI&bm_vers=1.1.0&mode=CURRENT-ONLY) and clicking a link in an email. Once unzipped, we have to make one slight change for running on macOS:
 
