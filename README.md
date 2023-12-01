@@ -6,7 +6,7 @@ This project contains two distinct portions:
 
 ![Figure 1.2–1 from the TPC-DI specification describes the ETL process.](images/tpc-di-etl-diagram.png)
 
-I should be clear in my goal here: I am not attempting to _actually_ run and measure* the TPC-DI benchmark.
+I should be clear in my goal here: I am not attempting to _actually run and measure_ the TPC-DI benchmark.
 The `tpcdi.py` CLI in this repository is single-threaded and ingests the data sequentially, which would be the worst approach if trying to optimize for a benchmark.
 Instead, I needed a dataset that could be used to mimic data engineering workloads inside of Snowflake, so I just wanted the files loaded.
 
